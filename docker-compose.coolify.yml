@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  nextjs:
+    image: ${REGISTRY:-ghcr.io}/${GITHUB_REPOSITORY_OWNER:-owner}/pocketnext-nextjs:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_POCKETBASE_URL=http://pocketbase:8090
+    depends_on:
+      - pocketbase
+    # Coolify-specific labels for automatic SSL and proxy setup
+    labels:
+      - coolify.managed=true
+
+  pocketbase:
+    image: ${REGISTRY:-ghcr.io}/${GITHUB_REPOSITORY_OWNER:-owner}/pocketnext-pocketbase:latest
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/pb/pb_data
+    environment:
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL:-admin@example.com}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD:-changeme123}
+    # Coolify-specific labels for automatic SSL and proxy setup
+    labels:
+      - coolify.managed=true
+
+volumes:
+  pb_data:
+    name: ${STACK_NAME:-pocketnext}_pb_data
+    # Using the named volume with persistent data across deployments

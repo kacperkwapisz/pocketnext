@@ -1,0 +1,48 @@
+# Node.js
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Next.js
+.next
+out
+dist
+build
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# PocketBase
+pb_data
+pocketbase
+
+# Logs
+logs
+*.log
+
+# Git and GitHub
+.git
+.github
+.gitignore
+
+# Testing
+coverage
+.nyc_output
+
+# Docker
+Dockerfile
+Dockerfile.dev
+docker-compose.yml
+.dockerignore
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store 

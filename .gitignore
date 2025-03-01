@@ -10,6 +10,13 @@
 !.yarn/releases
 !.yarn/versions
 
+# Package manager locks - uncomment based on your preference
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+bun.lock
+
 # testing
 /coverage
 
@@ -30,8 +37,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# environment variables
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +47,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PocketBase
+/pocketbase/
+/pb_data/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

@@ -1,0 +1,92 @@
+name: Build and Deploy to Coolify
+on:
+  push:
+    branches: ["main"]
+
+env:
+  REGISTRY: ghcr.io
+  NEXTJS_IMAGE_NAME: "${{ github.repository_owner }}/pocketnext-nextjs"
+  POCKETBASE_IMAGE_NAME: "${{ github.repository_owner }}/pocketnext-pocketbase"
+  PB_VERSION: "0.19.4"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Build and push Next.js image
+      - name: Build and push Next.js image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile.nextjs
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.NEXTJS_IMAGE_NAME }}:latest
+
+      # Build and push PocketBase image
+      - name: Build and push PocketBase image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile.pocketbase
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            PB_VERSION=${{ env.PB_VERSION }}
+          tags: ${{ env.REGISTRY }}/${{ env.POCKETBASE_IMAGE_NAME }}:latest
+
+      # Generate docker-compose.coolify.yml if not using the one in the repo
+      # Uncomment if you want to dynamically generate the compose file
+      # - name: Generate Coolify Docker Compose
+      #  run: |
+      #    cat > docker-compose.coolify.generated.yml << EOL
+      #    version: "3.8"
+      #
+      #    services:
+      #      nextjs:
+      #        image: ${{ env.REGISTRY }}/${{ env.NEXTJS_IMAGE_NAME }}:latest
+      #        restart: unless-stopped
+      #        ports:
+      #          - "3000:3000"
+      #        environment:
+      #          - NODE_ENV=production
+      #          - NEXT_PUBLIC_POCKETBASE_URL=http://pocketbase:8090
+      #        depends_on:
+      #          - pocketbase
+      #
+      #      pocketbase:
+      #        image: ${{ env.REGISTRY }}/${{ env.POCKETBASE_IMAGE_NAME }}:latest
+      #        restart: unless-stopped
+      #        ports:
+      #          - "8090:8090"
+      #        volumes:
+      #          - pb_data:/pb/pb_data
+      #        environment:
+      #          - PB_ADMIN_EMAIL=\${PB_ADMIN_EMAIL:-admin@example.com}
+      #          - PB_ADMIN_PASSWORD=\${PB_ADMIN_PASSWORD:-changeme123}
+      #
+      #    volumes:
+      #      pb_data:
+      #        name: \${STACK_NAME:-pocketnext}_pb_data
+      #    EOL
+
+      # Deploy to Coolify
+      - name: Deploy to Coolify
+        run: |
+          curl --request GET '${{ secrets.COOLIFY_WEBHOOK }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'
