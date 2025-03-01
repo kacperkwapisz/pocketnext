@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Coming soon...
 
+### Changed
+- Updated typegen script to use direct database access instead of environment variables
+
 ## [0.1.0] - 2025-03-02
 
 ### Added
