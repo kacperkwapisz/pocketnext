@@ -12,10 +12,10 @@ git clone https://github.com/kacperkwapisz/pocketnext.git
 cd pocketnext
 
 # Install dependencies and download PocketBase
-npm run setup
+bun setup
 
 # Start the development environment
-npm run dev
+bun dev
 ```
 
 Visit:
@@ -48,113 +48,17 @@ pocketnext/
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Next.js and PocketBase for development |
-| `npm run dev:next` | Start only Next.js development server |
-| `npm run dev:pb` | Start only PocketBase server |
-| `npm run dev:pb:admin` | Start PocketBase with admin setup prompt |
-| `npm run build` | Build Next.js for production |
-| `npm run start` | Start Next.js production server |
-| `npm run setup` | Install dependencies and download PocketBase |
-| `npm run setup:db` | Only download PocketBase |
-| `npm run setup:admin` | Set up PocketBase admin credentials interactively |
-
-## 📋 Package Manager Commands
-
-Use the package manager of your choice:
-
-<table>
-<tr>
-  <th>Task</th>
-  <th>npm</th>
-  <th>yarn</th>
-  <th>pnpm</th>
-  <th>bun</th>
-</tr>
-<tr>
-  <td>Setup</td>
-  <td><code>npm run setup</code></td>
-  <td><code>yarn setup</code></td>
-  <td><code>pnpm setup</code></td>
-  <td><code>bun setup</code></td>
-</tr>
-<tr>
-  <td>Install Only</td>
-  <td><code>npm install</code></td>
-  <td><code>yarn</code></td>
-  <td><code>pnpm install</code></td>
-  <td><code>bun install</code></td>
-</tr>
-<tr>
-  <td>Setup PocketBase</td>
-  <td><code>npm run setup:db</code></td>
-  <td><code>yarn setup:db</code></td>
-  <td><code>pnpm setup:db</code></td>
-  <td><code>bun setup:db</code></td>
-</tr>
-<tr>
-  <td>Setup Admin</td>
-  <td><code>npm run setup:admin</code></td>
-  <td><code>yarn setup:admin</code></td>
-  <td><code>pnpm setup:admin</code></td>
-  <td><code>bun setup:admin</code></td>
-</tr>
-<tr>
-  <td>Development</td>
-  <td><code>npm run dev</code></td>
-  <td><code>yarn dev</code></td>
-  <td><code>pnpm dev</code></td>
-  <td><code>bun dev</code></td>
-</tr>
-<tr>
-  <td>PocketBase Only</td>
-  <td><code>npm run dev:pb</code></td>
-  <td><code>yarn dev:pb</code></td>
-  <td><code>pnpm dev:pb</code></td>
-  <td><code>bun dev:pb</code></td>
-</tr>
-<tr>
-  <td>PocketBase with Admin</td>
-  <td><code>npm run dev:pb:admin</code></td>
-  <td><code>yarn dev:pb:admin</code></td>
-  <td><code>pnpm dev:pb:admin</code></td>
-  <td><code>bun dev:pb:admin</code></td>
-</tr>
-<tr>
-  <td>Next.js Only</td>
-  <td><code>npm run dev:next</code></td>
-  <td><code>yarn dev:next</code></td>
-  <td><code>pnpm dev:next</code></td>
-  <td><code>bun dev:next</code></td>
-</tr>
-<tr>
-  <td>Build</td>
-  <td><code>npm run build</code></td>
-  <td><code>yarn build</code></td>
-  <td><code>pnpm build</code></td>
-  <td><code>bun build</code></td>
-</tr>
-<tr>
-  <td>Type Generation</td>
-  <td><code>npm run typegen</code></td>
-  <td><code>yarn typegen</code></td>
-  <td><code>pnpm typegen</code></td>
-  <td><code>bun typegen</code></td>
-</tr>
-<tr>
-  <td>Start Production</td>
-  <td><code>npm start</code></td>
-  <td><code>yarn start</code></td>
-  <td><code>pnpm start</code></td>
-  <td><code>bun start</code></td>
-</tr>
-<tr>
-  <td>Lint</td>
-  <td><code>npm run lint</code></td>
-  <td><code>yarn lint</code></td>
-  <td><code>pnpm lint</code></td>
-  <td><code>bun lint</code></td>
-</tr>
-</table>
+| `bun dev` | Start Next.js and PocketBase for development |
+| `bun dev:next` | Start only Next.js development server |
+| `bun dev:pb` | Start only PocketBase server |
+| `bun dev:pb:admin` | Start PocketBase with admin setup prompt |
+| `bun build` | Build Next.js for production |
+| `bun start` | Start Next.js production server |
+| `bun setup` | Install dependencies and download PocketBase |
+| `bun setup:db` | Only download PocketBase |
+| `bun setup:admin` | Set up PocketBase admin credentials interactively |
+| `bun typegen` | Generate TypeScript types from PocketBase schema |
+| `bun lint` | Run ESLint to check code quality |
 
 ## 🔐 Setting Up PocketBase Admin
 
@@ -162,13 +66,13 @@ For security reasons, the default PocketBase setup doesn't include admin credent
 
 1. **Interactive Setup**:
    ```bash
-   npm run setup:admin
+   bun setup:admin
    ```
    This will prompt you for admin email and password, with an option to save to your .env file.
 
 2. **Run with Admin Prompt**:
    ```bash
-   npm run dev:pb:admin
+   bun dev:pb:admin
    ```
    Similar to above but runs PocketBase after setup.
 
@@ -178,12 +82,12 @@ For security reasons, the default PocketBase setup doesn't include admin credent
    PB_ADMIN_EMAIL=your-email@example.com
    PB_ADMIN_PASSWORD=your-secure-password
    ```
-   Then run with admin mode: `npm run dev:pb:admin`
+   Then run with admin mode: `bun dev:pb:admin`
 
 4. **First-Run Setup**:
    Just run PocketBase normally and create admin account through the web UI:
    ```bash
-   npm run dev:pb
+   bun dev:pb
    ```
    Then visit http://localhost:8090/_/ and follow the setup instructions.
 
@@ -228,7 +132,7 @@ To enable Coolify deployment:
 Generate TypeScript types from your PocketBase schema:
 
 ```bash
-npm run typegen
+bun typegen
 ```
 
 This creates types in `src/lib/pocketbase/types.ts` for type-safe database operations.
