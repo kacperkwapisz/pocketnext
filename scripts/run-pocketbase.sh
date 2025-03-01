@@ -7,7 +7,7 @@ ROOT_DIR="$(dirname "$SCRIPTS_DIR")"
 PB_BINARY="$ROOT_DIR/pocketbase/pocketbase"
 
 # Default values
-PB_VERSION=${PB_VERSION:-0.19.4}
+PB_VERSION=${PB_VERSION:-0.25.8}
 PB_DATA_DIR="$ROOT_DIR/pb_data"
 PB_HOST="0.0.0.0"
 PB_PORT="8090"

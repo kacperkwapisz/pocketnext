@@ -8,9 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "typegen": "pocketbase-typegen --out ./src/lib/pocketbase/types.ts --env",
-    "dev:pb": "cross-env PB_VERSION=0.19.4 ./scripts/run-pocketbase.sh",
+    "dev:pb": "cross-env ./scripts/run-pocketbase.sh",
     "dev:next": "next dev --turbopack",
-    "dev:pb:admin": "cross-env PB_VERSION=0.19.4 ./scripts/setup-pb-admin.sh",
+    "dev:pb:admin": "cross-env ./scripts/setup-pb-admin.sh",
     "setup": "bun install && ./scripts/download-pocketbase.sh",
     "setup:db": "./scripts/download-pocketbase.sh",
     "setup:admin": "./scripts/setup-pb-admin.sh"

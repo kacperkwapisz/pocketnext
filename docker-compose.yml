@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: Dockerfile.pocketbase
       args:
-        - PB_VERSION=${PB_VERSION:-0.19.4}
+        - PB_VERSION=${PB_VERSION:-0.25.8}
     container_name: pocketnext-pocketbase
     restart: unless-stopped
     ports:

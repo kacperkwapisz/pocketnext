@@ -7,7 +7,7 @@ env:
   REGISTRY: ghcr.io
   NEXTJS_IMAGE_NAME: "${{ github.repository_owner }}/pocketnext-nextjs"
   POCKETBASE_IMAGE_NAME: "${{ github.repository_owner }}/pocketnext-pocketbase"
-  PB_VERSION: "0.19.4"
+  PB_VERSION: "0.25.8"
 
 jobs:
   build-and-push:

@@ -5,7 +5,7 @@
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPTS_DIR")"
 PB_DIR="$ROOT_DIR/pocketbase"
-PB_VERSION=${PB_VERSION:-0.19.4}
+PB_VERSION=${PB_VERSION:-0.25.8}
 
 echo "PocketBase Downloader"
 echo "--------------------"
