@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:pb\" \"npm run dev:next\"",
+    "dev": "concurrently \"bun run dev:pb\" \"bun run dev:next\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typegen": "npx pocketbase-typegen --out ./src/lib/pocketbase/types.ts --env",
+    "typegen": "pocketbase-typegen --out ./src/lib/pocketbase/types.ts --env",
     "dev:pb": "cross-env PB_VERSION=0.19.4 ./scripts/run-pocketbase.sh",
     "dev:next": "next dev --turbopack",
     "dev:pb:admin": "cross-env PB_VERSION=0.19.4 ./scripts/setup-pb-admin.sh",
-    "setup": "npm install && ./scripts/download-pocketbase.sh",
+    "setup": "bun install && ./scripts/download-pocketbase.sh",
     "setup:db": "./scripts/download-pocketbase.sh",
     "setup:admin": "./scripts/setup-pb-admin.sh"
   },
@@ -37,7 +37,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.2.0",
-    "eslint-plugin-tailwindcss": "^3.18.0",
+    "pocketbase-typegen": "^1.2.1",
     "prettier": "^3.5.2",
     "tailwindcss": "^4",
     "typescript": "^5"
