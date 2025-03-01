@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typegen": "pocketbase-typegen --out ./src/lib/pocketbase/types.ts --env",
+    "typegen": "pocketbase-typegen --out ./src/lib/pocketbase/types.ts --db ./pb_data/data.db",
     "dev:pb": "./scripts/run-pocketbase.sh",
     "dev:next": "next dev --turbopack",
     "dev:pb:admin": "./scripts/setup-pb-admin.sh",
