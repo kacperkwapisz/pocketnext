@@ -10,9 +10,15 @@
 !.yarn/releases
 !.yarn/versions
 
+# Package manager locks - uncomment based on your preference
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+bun.lock
+
 # testing
 /coverage
-test-project/
 
 # next.js
 /.next/
@@ -56,6 +62,3 @@ next-env.d.ts
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
-# dist
-dist/
