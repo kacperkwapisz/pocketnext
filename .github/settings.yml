@@ -1,0 +1,64 @@
+repository:
+  # See https://docs.github.com/en/rest/reference/repos#update-a-repository for all available settings.
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: false
+  default_branch: main
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
+
+labels:
+  - name: bug
+    color: d73a4a
+    description: Something isn't working
+  - name: documentation
+    color: 0075ca
+    description: Improvements or additions to documentation
+  - name: enhancement
+    color: a2eeef
+    description: New feature or request
+  - name: good first issue
+    color: 7057ff
+    description: Good for newcomers
+  - name: help wanted
+    color: 008672
+    description: Extra attention is needed
+  - name: question
+    color: d876e3
+    description: Further information is requested
+  - name: wontfix
+    color: ffffff
+    description: This will not be worked on
+  - name: breaking-change
+    color: e99695
+    description: Introduces a breaking API change
+  - name: dependencies
+    color: 0366d6
+    description: Pull requests that update a dependency file
+  - name: performance
+    color: 016175
+    description: Performance related issues or improvements
+  - name: cli
+    color: 0e8a16
+    description: Related to the CLI functionality
+  - name: template
+    color: 1d76db
+    description: Related to project templates
+
+branches:
+  - name: main
+    # https://docs.github.com/en/rest/reference/repos#update-branch-protection
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+      required_status_checks:
+        strict: true
+        contexts: ["build", "lint"]
+      enforce_admins: false
+      required_linear_history: false
+      restrictions: null

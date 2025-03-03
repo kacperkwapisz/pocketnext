@@ -1,0 +1,24 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# @kacperkwapisz will be requested for review when someone 
+# opens a pull request.
+*       @kacperkwapisz
+
+# CLI source code
+/src/**         @kacperkwapisz
+/templates/**   @kacperkwapisz
+
+# Configuration files
+/*.config.js    @kacperkwapisz
+/*.config.ts    @kacperkwapisz
+/package.json   @kacperkwapisz
+/bun.lockb      @kacperkwapisz
+
+# CI/CD related files
+/.github/**     @kacperkwapisz
+/Dockerfile     @kacperkwapisz
+
+# Documentation
+/README.md      @kacperkwapisz
+/CHANGELOG.md   @kacperkwapisz
+/LICENSE        @kacperkwapisz 
