@@ -1,8 +1,8 @@
 # PocketNext
 
-<!-- <p align="center">
-  <img src="/assets/pocketnext-logo.png" alt="PocketNext Logo" width="180" height="180" style="max-width: 100%;">
-</p> -->
+<p align="center">
+  <img src="assets/pocketnext-demo.gif" alt="PocketNext CLI Demo" width="650">
+</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/pocketnext"><img src="https://img.shields.io/npm/v/pocketnext.svg?style=flat-square" alt="npm version"></a>
@@ -51,10 +51,6 @@ cd my-app
 # Start the development environment
 bun dev
 ```
-
-<p align="center">
-  <img src="assets/pocketnext-demo.gif" alt="PocketNext CLI Demo" width="650">
-</p>
 
 ### Project Profiles
 
