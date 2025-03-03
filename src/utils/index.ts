@@ -20,15 +20,40 @@ export async function getOnline(): Promise<boolean> {
 }
 
 /**
- * Determines which package manager to use
+ * Determine which package manager to use
  */
 export async function getPackageManager(
   options: CreateOptions
 ): Promise<string> {
+  // Check explicit CLI options first
   if (options.useNpm) return "npm";
   if (options.useYarn) return "yarn";
   if (options.usePnpm) return "pnpm";
   if (options.useBun) return "bun";
+
+  // Check how the script is being executed
+
+  // Check for Bun specifically - Bun-specific checks
+  if (typeof process.isBun !== "undefined") return "bun";
+  if (process.env.BUN_INSTALL) return "bun";
+
+  // Check the executable that's running this process
+  const execPath = process.argv[0];
+  if (execPath) {
+    const execName = execPath.split("/").pop();
+    if (execName === "bun") return "bun";
+    if (execName === "pnpm") return "pnpm";
+    if (execName === "yarn") return "yarn";
+  }
+
+  // Check npm user agent for other package managers
+  const userAgent = process.env.npm_config_user_agent;
+  if (userAgent) {
+    if (userAgent.startsWith("bun")) return "bun";
+    if (userAgent.startsWith("pnpm")) return "pnpm";
+    if (userAgent.startsWith("yarn")) return "yarn";
+    if (userAgent.startsWith("npm")) return "npm";
+  }
 
   // Detect available package managers
   const packageManagers = {

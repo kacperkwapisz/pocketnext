@@ -4,6 +4,7 @@ export interface CreateOptions {
   useYarn?: boolean;
   usePnpm?: boolean;
   useBun?: boolean;
+  packageManager?: string;
   yes?: boolean;
   deploymentPlatform?: string;
   dockerConfig?: string;

@@ -520,7 +520,13 @@ export async function createProject(
     }
 
     // Get package manager
-    const packageManager = await getPackageManager(options);
+    const packageManager =
+      options.packageManager || (await getPackageManager(options));
+
+    // Store back in options for consistency
+    if (!options.packageManager) {
+      options.packageManager = packageManager;
+    }
 
     // If options.yes is true, use defaults without prompting
     if (!options.yes) {

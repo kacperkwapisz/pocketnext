@@ -10,7 +10,7 @@ import { dirname, resolve } from "path";
 import { readFileSync } from "fs";
 import validateNpmName from "validate-npm-package-name";
 import path from "path";
-import { displayHelp } from "@/utils";
+import { displayHelp, getPackageManager } from "@/utils";
 import {
   createHeader,
   createGradient,
@@ -167,16 +167,17 @@ async function run() {
       projectPath = await getProjectPathFromUser("my-app");
     }
 
-    // Get the package manager
-    const packageManager = options.useNpm
-      ? "npm"
-      : options.useYarn
-        ? "yarn"
-        : options.usePnpm
-          ? "pnpm"
-          : options.useBun
-            ? "bun"
-            : "npm";
+    // Get package manager
+    const packageManager = await getPackageManager(options);
+
+    // Store the package manager in options to ensure consistency
+    options.packageManager = packageManager;
+
+    // Debug - remove after testing
+    if (process.env.DEBUG) {
+      console.log("Detected package manager:", packageManager);
+      console.log("Executable path:", process.argv[0]);
+    }
 
     // Run create with options
     try {
@@ -224,12 +225,16 @@ async function run() {
       );
       console.log();
       console.log("- Run commands:");
+
+      // Use the packageManager from options (which was detected earlier)
+      const runCmd = options.packageManager === "npm" ? "run " : "";
+
       logCommand(
-        `${packageManager}${packageManager === "npm" ? " run" : ""} dev`,
+        `${options.packageManager} ${runCmd}dev`,
         "Starts the development server"
       );
       logCommand(
-        `${packageManager}${packageManager === "npm" ? " run" : ""} build`,
+        `${options.packageManager} ${runCmd}build`,
         "Builds the application"
       );
       if (options.dockerConfig === "standard") {

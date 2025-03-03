@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Coming soon...
 
+## [0.7.9] - 2025-03-03
+
+### Improved
+
+- Enhanced package manager detection to properly identify when CLI is run with Bun
+- Getting started instructions now show the correct package manager commands (npm run dev, bun dev, etc.)
+- Better consistency when detecting and using package managers throughout the application
+
 ## [0.7.8] - 2025-03-02
 
 ### Added
