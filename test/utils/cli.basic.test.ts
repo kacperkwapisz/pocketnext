@@ -7,7 +7,6 @@ describe("CLI utilities - basic tests", () => {
     const options = parseCliOptions(args);
 
     // Check that default options are set
-    expect(options.template).toBe("kacperkwapisz/pocketnext");
     expect(options.deploymentPlatform).toBe("standard");
     expect(options.dockerConfig).toBe("standard");
   });

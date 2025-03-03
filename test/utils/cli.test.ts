@@ -11,7 +11,6 @@ describe("parseCliOptions", () => {
       dockerConfig: "standard",
       imageLoader: "vercel",
       includeGithubWorkflows: false,
-      template: "kacperkwapisz/pocketnext",
       yes: false,
     });
   });
@@ -96,19 +95,6 @@ describe("parseCliOptions", () => {
     const options = parseCliOptions(args);
 
     expect(options.includeGithubWorkflows).toBe(true);
-  });
-
-  test("parses template option correctly", () => {
-    const args = [
-      "node",
-      "create-pocketnext",
-      "my-app",
-      "-t",
-      "custom/template",
-    ];
-    const options = parseCliOptions(args);
-
-    expect(options.template).toBe("custom/template");
   });
 });
 

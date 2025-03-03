@@ -8,14 +8,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+- Coming soon...
+
+### Fixed
+
 - Coming soon...
 
 ### Changed
+
+- Coming soon...
+
+## [0.7.8] - 2025-03-02
+
+### Added
+
+- Implemented hybrid template resolution strategy (local + GitHub fallback)
+- Added runtime template downloading from GitHub when local templates aren't available
+
+### Fixed
+
+- Fixed GitHub workflow selection not actually creating workflow files and content
+- Fixed template resolution when installing via npm or running with bunx/npx
+- Enhanced build process to include templates in the dist directory
+- Fixed version lookup for more robust package.json detection
+
+### Changed
+
+- Optimized GitHub workflow setup with smart path detection across multiple locations
+- Improved feature setup with progress indication
+- Added fallback to create default workflow files when template files aren't available
+- Reduced code complexity and removed redundancy in template handling
 - Updated typegen script to use direct database access instead of environment variables
+
+## [0.7.0] - 2024-07-04
+
+### Added
+
+- Robust SIGINT/Ctrl+C handling for graceful cancellation at any point
+- Consistent cleanup of partially created directories when cancelling
+
+### Fixed
+
+- Fixed bug where pressing Enter on prompts would incorrectly abort the operation
+- Fixed handling of default values in all prompt types (text, select, confirm)
+- Improved image loader configuration for Vercel deployments - no custom loader used
+
+### Changed
+
+- Optimized Vercel image loader setup: no loader.ts file created when using Vercel
+- Simplified next.config.ts when using Vercel image optimization
 
 ## [0.1.0] - 2025-03-02
 
 ### Added
+
 - Initial release of PocketNext starter
 - Next.js 15 with App Router configuration
 - PocketBase integration with type generation
@@ -29,5 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable management with .env.example
 - Package manager agnostic setup (npm, yarn, pnpm, bun)
 
-[Unreleased]: https://github.com/kacperkwapisz/pocketnext/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/kacperkwapisz/pocketnext/releases/tag/v0.1.0 
+[Unreleased]: https://github.com/kacperkwapisz/pocketnext/compare/v0.7.8...HEAD
+[0.7.8]: https://github.com/kacperkwapisz/pocketnext/compare/v0.7.0...v0.7.8
+[0.7.0]: https://github.com/kacperkwapisz/pocketnext/compare/v0.1.0...v0.7.0
+[0.1.0]: https://github.com/kacperkwapisz/pocketnext/releases/tag/v0.1.0

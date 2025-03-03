@@ -24,12 +24,6 @@ vi.mock("prompts");
 vi.mock("../../src/utils", () => ({
   getPackageManager: vi.fn().mockResolvedValue("bun"),
   getOnline: vi.fn().mockResolvedValue(true),
-  downloadAndExtractRepo: vi.fn().mockResolvedValue(undefined),
-  removeGitFromTemplate: vi.fn().mockResolvedValue(undefined),
-  getTemplatePaths: vi.fn().mockResolvedValue({
-    tempPath: "/tmp/pocketnext-template",
-    templatePath: "/tmp/pocketnext-template/template",
-  }),
   safeRemove: vi.fn().mockResolvedValue(undefined),
 }));
 

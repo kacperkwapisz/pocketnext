@@ -1,0 +1,38 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy all files and build the app
+COPY . .
+RUN npm run build
+
+# Production image
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install health check utilities
+RUN apk add --no-cache wget
+
+# Copy built application from builder stage
+COPY --from=builder /app/.next /app/.next
+COPY --from=builder /app/public /app/public
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/package.json /app/package.json
+
+# Add a healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --spider http://localhost:3000 || exit 1
+
+# Expose Next.js port
+EXPOSE 3000
+
+# Set production environment
+ENV NODE_ENV=production
+
+# Start Next.js
+CMD ["npm", "start"] 

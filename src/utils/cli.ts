@@ -28,7 +28,6 @@ export function parseCliOptions(args: string[]): CreateOptions {
   // Set defaults
   const options: CreateOptions = {
     yes: false, // Default to interactive mode
-    template: "kacperkwapisz/pocketnext",
     deploymentPlatform: "standard",
     dockerConfig: "standard",
     imageLoader: "vercel",
@@ -52,14 +51,6 @@ export function parseCliOptions(args: string[]): CreateOptions {
   // Check for github-workflows flag
   if (args.includes("--github-workflows"))
     options.includeGithubWorkflows = true;
-
-  // Check for custom template
-  const templateIndex = args.findIndex(
-    (arg) => arg === "-t" || arg === "--template"
-  );
-  if (templateIndex !== -1 && args.length > templateIndex + 1) {
-    options.template = args[templateIndex + 1];
-  }
 
   // Check for deployment platform
   const deploymentIndex = args.findIndex((arg) => arg === "--deployment");

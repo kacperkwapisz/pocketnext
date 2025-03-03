@@ -1,5 +1,4 @@
 export interface CreateOptions {
-  template?: string;
   skipInstall?: boolean;
   useNpm?: boolean;
   useYarn?: boolean;

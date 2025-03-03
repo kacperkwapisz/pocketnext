@@ -3,71 +3,66 @@
 // Don't include shebang here, it's added by tsup
 
 import chalk from "chalk";
-import { createProject } from "../core/create-project";
-import { parseCliOptions, getProjectPath } from "../utils/cli";
+import { createProject } from "@/core/create-project";
+import { parseCliOptions, getProjectPath } from "@/utils/cli";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import { readFileSync } from "fs";
-import prompts from "prompts";
 import validateNpmName from "validate-npm-package-name";
 import path from "path";
-import readline from "readline";
+import { displayHelp } from "@/utils";
+import {
+  createHeader,
+  createGradient,
+  promptUser,
+  logSection,
+  logCommand,
+  pocketNextGradient,
+} from "@/utils/ui";
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Get package version
-const packageJsonPath = resolve(__dirname, "../../package.json");
-const { version } = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-
-/**
- * Displays help message for the CLI
- */
-function displayHelp(): void {
-  console.log(`
-${chalk.bold("pocketnext")} [options] [project-directory]
-
-Create a new PocketNext project with an interactive setup experience.
-
-${chalk.bold("Options:")}
-  -t, --template <name>        Specify a template (default: "kacperkwapisz/pocketnext")
-  --deployment <platform>      Deployment platform: vercel, coolify, standard (default: standard)
-  --docker <config>            Docker configuration: standard, coolify, none (default: standard)
-  --image-loader <type>        Image loader: vercel, coolify, wsrv (default: vercel)
-  --github-workflows           Include GitHub workflow files (default: false)
-  --use-npm                    Use npm as package manager
-  --use-yarn                   Use yarn as package manager
-  --use-pnpm                   Use pnpm as package manager
-  --use-bun                    Use bun as package manager (default if available)
-  --skip-install               Skip package installation
-  -y, --yes                    Skip interactive prompts and use defaults
-  --help                       Display this help message
-
-${chalk.bold("Examples:")}
-  bunx pocketnext@latest my-app
-  bunx pocketnext@latest my-app --use-npm
-  bunx pocketnext@latest my-app --deployment vercel --image-loader vercel
-  bunx pocketnext@latest my-app --docker coolify --github-workflows -y
-  bunx pocketnext@latest my-app -t kacperkwapisz/pocketnext
-  `);
-  process.exit(0);
+// Get package version - more robust path resolution for production and development
+let packageJsonPath;
+try {
+  // First try relative to dist
+  packageJsonPath = resolve(__dirname, "../package.json");
+  if (!readFileSync(packageJsonPath, "utf8")) {
+    throw new Error("Not found");
+  }
+} catch (error) {
+  try {
+    // Then try relative to src (development mode)
+    packageJsonPath = resolve(__dirname, "../../package.json");
+    if (!readFileSync(packageJsonPath, "utf8")) {
+      throw new Error("Not found");
+    }
+  } catch (error) {
+    // Fallback - try to find package.json in parent dirs
+    let currentDir = __dirname;
+    while (currentDir !== "/") {
+      try {
+        packageJsonPath = resolve(currentDir, "package.json");
+        readFileSync(packageJsonPath, "utf8");
+        break;
+      } catch (error) {
+        currentDir = dirname(currentDir);
+      }
+    }
+  }
 }
 
-// Display welcome banner
-function displayBanner() {
-  console.log(
-    chalk.blue(`
-██████╗  ██████╗  ██████╗██╗  ██╗███████╗████████╗███╗   ██╗███████╗██╗  ██╗████████╗
-██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝████╗  ██║██╔════╝╚██╗██╔╝╚══██╔══╝
-██████╔╝██║   ██║██║     █████╔╝ █████╗     ██║   ██╔██╗ ██║█████╗   ╚███╔╝    ██║   
-██╔═══╝ ██║   ██║██║     ██╔═██╗ ██╔══╝     ██║   ██║╚██╗██║██╔══╝   ██╔██╗    ██║   
-██║     ╚██████╔╝╚██████╗██║  ██╗███████╗   ██║   ██║ ╚████║███████╗██╔╝ ██╗   ██║   
-╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝   
-`)
-  );
-  console.log(chalk.blue(`v${version} - Next.js + PocketBase Starter`));
-  console.log();
+// If we still don't have a package.json, use a hardcoded version
+let version = "0.7.0"; // Fallback version
+try {
+  if (packageJsonPath) {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+    version = packageJson.version;
+  }
+} catch (error) {
+  console.error("Warning: Could not read package version, using fallback");
 }
 
 /**
@@ -93,42 +88,46 @@ function validateProjectName(name: string): {
  * Handles graceful exit when the process is interrupted
  */
 function handleSigInt() {
-  console.log();
-  console.log(chalk.red("Process interrupted. Exiting..."));
   process.exit(0);
 }
 
 async function getProjectPathFromUser(defaultPath: string): Promise<string> {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
+  try {
+    // Pass the default path to promptUser - pressing Enter should return this value
+    const projectPath = await promptUser(
+      "Where would you like to create your PocketNext project?",
+      defaultPath
+    );
 
-    rl.question(`What is your project named? (${defaultPath}) `, (answer) => {
-      rl.close();
-      const projectPath = answer.trim() || defaultPath;
+    // If user pressed Enter with no input, the default will be used
+    // A valid result should never be empty at this point
+    if (!projectPath || projectPath.trim() === "") {
+      return defaultPath;
+    }
 
-      // Validate the project name
-      const validation = validateProjectName(path.basename(projectPath));
-      if (!validation.valid) {
-        console.error(
-          chalk.red(
-            `Invalid project name: ${validation.problems?.[0] || "Unknown error"}`
-          )
-        );
-        process.exit(1);
-      }
+    // Validate the project name
+    const validation = validateProjectName(path.basename(projectPath));
+    if (!validation.valid) {
+      console.error(
+        chalk.red(
+          `Invalid project name: ${validation.problems?.[0] || "Unknown error"}`
+        )
+      );
+      process.exit(1);
+    }
 
-      resolve(projectPath);
-    });
-
-    // Handle Ctrl+C during the readline prompt
-    rl.on("SIGINT", () => {
-      rl.close();
-      handleSigInt();
-    });
-  });
+    return projectPath;
+  } catch (error) {
+    // Check if this was a SIGINT rejection
+    if (error instanceof Error && error.message === "SIGINT") {
+      process.exit(0);
+    } else {
+      console.error(chalk.red("Error during prompt:"), error);
+      process.exit(1);
+    }
+    // This will never be reached due to process.exit()
+    return defaultPath;
+  }
 }
 
 async function run() {
@@ -143,50 +142,115 @@ async function run() {
     displayHelp();
   }
 
-  // Display banner
-  displayBanner();
-
-  // Display welcome message
-  console.log(
-    `${chalk.blue("Welcome to")} ${chalk.bold.blue("PocketNext")} - ${chalk.blue("Create full-stack Next.js + PocketBase projects")}`
-  );
-  console.log();
-
-  // Remove @latest from arguments if present (for compatibility)
-  const cleanedArgs = args.filter((arg) => arg !== "@latest");
-
-  // Parse options from command line
-  const options = parseCliOptions(cleanedArgs);
-
-  // Get project path from arguments or prompt for it
-  let projectPath = getProjectPath(cleanedArgs);
-
-  // Check if a path argument was explicitly provided (not inferred from defaults)
-  // We need to check if there are positional args, not just any args
-  const positionalArgs = cleanedArgs.filter((arg) => !arg.startsWith("-"));
-  const hasProvidedPath = positionalArgs.length > 0;
-
-  if (!hasProvidedPath && !options.yes) {
-    try {
-      projectPath = await getProjectPathFromUser("my-app");
-    } catch (error) {
-      console.error(chalk.red("Error during prompt:"), error);
-      handleSigInt();
-      return;
-    }
+  // Check for version flag
+  if (args.includes("--version") || args.includes("-v")) {
+    console.log(version);
+    process.exit(0);
   }
 
-  if (options.template !== "kacperkwapisz/pocketnext") {
-    console.log(chalk.blue(`Using template: ${options.template}`));
-  }
-  console.log();
-
-  // Run create with options
   try {
-    await createProject(projectPath, options);
+    // Remove @latest from arguments if present (for compatibility)
+    const cleanedArgs = args.filter((arg) => arg !== "@latest");
+
+    // Parse options from command line
+    const options = parseCliOptions(cleanedArgs);
+
+    // Get project path from arguments or prompt for it
+    let projectPath = getProjectPath(cleanedArgs);
+
+    // Check if a path argument was explicitly provided (not inferred from defaults)
+    // We need to check if there are positional args, not just any args
+    const positionalArgs = cleanedArgs.filter((arg) => !arg.startsWith("-"));
+    const hasProvidedPath = positionalArgs.length > 0;
+
+    if (!hasProvidedPath && !options.yes) {
+      projectPath = await getProjectPathFromUser("my-app");
+    }
+
+    // Get the package manager
+    const packageManager = options.useNpm
+      ? "npm"
+      : options.useYarn
+        ? "yarn"
+        : options.usePnpm
+          ? "pnpm"
+          : options.useBun
+            ? "bun"
+            : "npm";
+
+    // Run create with options
+    try {
+      await createProject(projectPath, options);
+
+      // Display success message
+      console.log();
+      console.log(createHeader("Creating a new PocketNext project:"));
+      console.log();
+
+      // Application section
+      logSection("Application", [
+        chalk.bold("Next.js with TypeScript"),
+        chalk.bold("ESLint and Prettier"),
+        chalk.bold("TailwindCSS for styling"),
+        chalk.bold("Components directory"),
+      ]);
+
+      // Database section
+      logSection("Database", [
+        chalk.bold("PocketBase for data storage and auth"),
+        chalk.bold("API routes for database access"),
+        chalk.bold("Authentication setup"),
+      ]);
+
+      // Infrastructure section
+      logSection("Infrastructure", [
+        chalk.bold("Development scripts"),
+        chalk.bold("Production optimizations"),
+        chalk.bold("Docker configuration"),
+      ]);
+
+      console.log();
+      console.log(
+        pocketNextGradient(">>> Success!") +
+          " Created your PocketNext project at " +
+          chalk.green(projectPath)
+      );
+      console.log();
+
+      // Getting started instructions
+      console.log(chalk.bold("To get started:"));
+      console.log(
+        `- Change to the directory: ${chalk.cyan(`cd ${projectPath}`)}`
+      );
+      console.log();
+      console.log("- Run commands:");
+      logCommand(
+        `${packageManager}${packageManager === "npm" ? " run" : ""} dev`,
+        "Starts the development server"
+      );
+      logCommand(
+        `${packageManager}${packageManager === "npm" ? " run" : ""} build`,
+        "Builds the application"
+      );
+      if (options.dockerConfig === "standard") {
+        logCommand("docker compose up -d", "Start in Docker");
+      }
+
+      console.log();
+      // console.log(
+      //   `${chalk.bold("Documentation:")} https://github.com/kacperkwapisz/pocketnext`
+      // );
+    } catch (error) {
+      console.error(chalk.red("Failed to create project:"), error);
+      process.exit(1);
+    }
   } catch (error) {
-    console.error(chalk.red("Failed to create project:"), error);
+    console.error(chalk.red("Error:"), error);
     process.exit(1);
+  } finally {
+    // Clean up SIGINT handlers
+    process.off("SIGINT", handleSigInt);
+    process.off("SIGTERM", handleSigInt);
   }
 }
 

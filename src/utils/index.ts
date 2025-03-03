@@ -3,40 +3,20 @@ import path from "path";
 import os from "os";
 import { execa } from "execa";
 import got from "got";
-import tar from "tar";
-import { Stream } from "stream";
-import { promisify } from "util";
+import chalk from "chalk";
 import type { CreateOptions } from "../types";
-
-const pipeline = promisify(Stream.pipeline);
 
 /**
  * Checks if the user is online
  */
 export async function getOnline(): Promise<boolean> {
   try {
-    await got("https://registry.npmjs.org/npm");
+    // Add a 3-second timeout to prevent hanging on slow connections
+    await got("https://registry.npmjs.org/npm", { timeout: { request: 3000 } });
     return true;
   } catch {
     return false;
   }
-}
-
-/**
- * Gets paths for template extraction
- */
-export async function getTemplatePaths(): Promise<{
-  tempPath: string;
-  templatePath: string;
-}> {
-  const tempPath = path.join(os.tmpdir(), "pocketnext-template");
-  const templatePath = path.join(tempPath, "template");
-
-  await fs.ensureDir(tempPath);
-  await fs.emptyDir(tempPath);
-  await fs.ensureDir(templatePath);
-
-  return { tempPath, templatePath };
 }
 
 /**
@@ -83,35 +63,37 @@ export async function getPackageManager(
 }
 
 /**
- * Removes git directory from the template
+ * Displays help message for the CLI
  */
-export async function removeGitFromTemplate(targetPath: string): Promise<void> {
-  const gitPath = path.join(targetPath, ".git");
-  if (fs.existsSync(gitPath)) {
-    await fs.remove(gitPath);
-  }
-}
+export function displayHelp(): void {
+  console.log(`${chalk.bold("Usage:")} pocketnext [options] [project-directory]
 
-interface DownloadOptions {
-  repo: string;
-  targetPath: string;
-  branch?: string;
-}
+Create a new PocketNext project with an interactive setup experience.
 
-/**
- * Downloads and extracts a GitHub repository
- */
-export async function downloadAndExtractRepo({
-  repo,
-  targetPath,
-  branch = "main",
-}: DownloadOptions): Promise<void> {
-  const url = `https://codeload.github.com/${repo}/tar.gz/${branch}`;
+${chalk.bold("Options:")}
+  -v, --version                Display the version number
+  --deployment <platform>      Deployment platform: vercel, coolify, standard (default: standard)
+  --docker <config>            Docker configuration: standard, coolify, none (default: standard)
+  --image-loader <type>        Image loader: vercel, coolify, wsrv (default: vercel)
+  --github-workflows           Include GitHub workflow files (default: false)
+  --use-npm                    Use npm as package manager
+  --use-yarn                   Use yarn as package manager
+  --use-pnpm                   Use pnpm as package manager
+  --use-bun                    Use bun as package manager (default if available)
+  --skip-install               Skip package installation
+  -y, --yes                    Skip interactive prompts and use defaults
+  --help                       Display this help message
 
-  await pipeline(got.stream(url), tar.extract({ cwd: targetPath, strip: 1 }));
+${chalk.bold("Examples:")}
+  bunx pocketnext@latest my-app
+  bunx pocketnext@latest my-app --use-npm
+  bunx pocketnext@latest my-app --deployment vercel --image-loader vercel
+  bunx pocketnext@latest my-app --docker coolify --github-workflows -y`);
+  process.exit(0);
 }
 
 // Export all utility functions
 export * from "./cli";
 export * from "./fs";
 export * from "./template";
+export * from "./ui";
