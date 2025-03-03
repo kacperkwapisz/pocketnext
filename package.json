@@ -1,6 +1,6 @@
 {
   "name": "pocketnext",
-  "version": "0.7.9",
+  "version": "0.8.0",
   "description": "Create Next.js + PocketBase projects with an interactive setup experience",
   "publishConfig": {
     "access": "public"
@@ -31,12 +31,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:cli": "vitest run test/utils/cli.test.ts --pool=fork",
-    "test:basic": "vitest run test/basic.test.ts",
-    "test:cli:basic": "vitest run test/utils/cli.basic.test.ts",
-    "test:create:basic": "vitest run test/core/create-project.basic.test.ts",
-    "test:template:basic": "vitest run test/utils/template.basic.test.ts",
-    "test:all:basic": "vitest run test/basic.test.ts test/utils/cli.basic.test.ts test/core/create-project.basic.test.ts test/utils/template.basic.test.ts"
+    "test:cli": "vitest run test/utils/cli.test.ts",
+    "test:spinner": "vitest run test/core/create-project.spinner.test.ts",
+    "test:utils": "vitest run test/utils/**/*.test.ts",
+    "test:all": "vitest run"
   },
   "keywords": [
     "nextjs",

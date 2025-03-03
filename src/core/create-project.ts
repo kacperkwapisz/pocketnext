@@ -1,474 +1,121 @@
-import fs from "fs-extra";
-import path from "path";
 import chalk from "chalk";
 import ora from "ora";
+import fs from "fs-extra";
+import path from "path";
 import prompts from "prompts";
-import { execa } from "execa";
 import { fileURLToPath } from "url";
-import got from "got";
-import os from "os";
-import tar from "tar";
-import { glob } from "glob";
-import type { CreateOptions, Feature, FeatureCategory } from "../types";
-import { getPackageManager, getOnline, safeRemove } from "../utils";
-
-// Template repository details
-const REPO_OWNER = "kacperkwapisz";
-const REPO_NAME = "pocketnext";
-const BRANCH = "main"; // or any other branch
-
-/**
- * Available feature categories that can be selected during project creation
- */
-export const FEATURE_CATEGORIES: FeatureCategory[] = [
-  {
-    id: "deployment",
-    name: "Deployment Platform",
-    description: "Choose your deployment platform configuration",
-    exclusive: true,
-    options: [
-      {
-        id: "vercel",
-        name: "Vercel",
-        description: "Configure for Vercel deployment",
-      },
-      {
-        id: "coolify",
-        name: "Coolify",
-        description: "Configure for Coolify deployment",
-      },
-      {
-        id: "standard",
-        name: "Standard",
-        description: "No specific deployment configuration",
-      },
-    ],
-  },
-  {
-    id: "docker",
-    name: "Docker Configuration",
-    description: "Choose your Docker setup",
-    exclusive: true,
-    options: [
-      {
-        id: "standard",
-        name: "Standard",
-        description: "Standard Docker setup",
-      },
-      {
-        id: "coolify",
-        name: "Coolify",
-        description: "Docker setup optimized for Coolify",
-      },
-      {
-        id: "none",
-        name: "None",
-        description: "No Docker configuration",
-      },
-    ],
-  },
-  {
-    id: "imageLoader",
-    name: "Image Loader",
-    description: "Choose your image loading solution",
-    exclusive: true,
-    options: [
-      {
-        id: "vercel",
-        name: "Vercel Image Loader",
-        description: "Use Vercel's built-in image optimization",
-      },
-      {
-        id: "coolify",
-        name: "Coolify Image Loader",
-        description: "Use Coolify for image optimization",
-      },
-      {
-        id: "wsrv",
-        name: "WSRV Image Loader",
-        description: "Use WSRV.nl for image optimization",
-      },
-    ],
-  },
-  {
-    id: "workflows",
-    name: "GitHub Workflows",
-    description: "GitHub Actions workflow configuration",
-    exclusive: true,
-    options: [
-      {
-        id: "include",
-        name: "Include GitHub Workflows",
-        description: "Add GitHub Actions workflows for CI/CD",
-      },
-      {
-        id: "exclude",
-        name: "Exclude GitHub Workflows",
-        description: "Don't include GitHub Actions workflows",
-      },
-    ],
-  },
-];
-
-/**
- * Copy GitHub workflow files to the target directory or create default ones if not available
- */
-async function setupGitHubWorkflows(targetDir: string): Promise<void> {
-  const workflowsDir = path.join(targetDir, ".github", "workflows");
-  await fs.ensureDir(workflowsDir);
-
-  let copied = false;
-
-  // Try multiple possible template locations
-  const possibleTemplatePaths = [
-    // Standard path when running from source
-    path.join(process.cwd(), "templates", "default", ".github", "workflows"),
-    // Path when templates are in dist
-    path.join(
-      process.cwd(),
-      "dist",
-      "templates",
-      "default",
-      ".github",
-      "workflows"
-    ),
-    // Path for fetched GitHub templates
-    path.join(
-      os.tmpdir(),
-      `pocketnext-template-*/${REPO_NAME}-${BRANCH}/templates/default/.github/workflows`
-    ),
-    // Path relative to the target project
-    path.join(targetDir, "..", "templates", "default", ".github", "workflows"),
-  ];
-
-  // Try each possible path
-  for (const templatePathPattern of possibleTemplatePaths) {
-    try {
-      // Handle glob patterns for temp directories
-      let templatePaths = [templatePathPattern];
-      if (templatePathPattern.includes("*")) {
-        // Find matching directories using glob
-        const matches = await glob(templatePathPattern);
-        if (matches.length > 0) {
-          templatePaths = matches;
-        }
-      }
-
-      // Try each path
-      for (const templatePath of templatePaths) {
-        if (await fs.pathExists(templatePath)) {
-          const files = await fs.readdir(templatePath);
-          if (files.length > 0) {
-            // Copy files
-            for (const file of files) {
-              const sourcePath = path.join(templatePath, file);
-              const destPath = path.join(workflowsDir, file);
-              await fs.copy(sourcePath, destPath, { overwrite: true });
-              copied = true;
-            }
-
-            if (copied) {
-              // Success! Stop looking for templates
-              break;
-            }
-          }
-        }
-      }
-
-      if (copied) {
-        // If files were copied, no need to try other paths
-        break;
-      }
-    } catch (error) {
-      // Continue to the next path if this one fails
-      continue;
-    }
-  }
-
-  // If no files were copied, create a default CI workflow
-  if (!copied) {
-    const ciWorkflowContent = `name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm ci
-      - name: Lint
-        run: npm run lint
-      - name: Build
-        run: npm run build
-`;
-    await fs.writeFile(path.join(workflowsDir, "ci.yml"), ciWorkflowContent);
-  }
-}
-
-/**
- * Available features that can be selected during project creation
- */
-export const AVAILABLE_FEATURES: Record<string, Feature> = {
-  githubActions: {
-    name: "GitHub Workflows",
-    description: "Add GitHub Actions workflows for CI/CD",
-    dependencies: [],
-    setup: setupGitHubWorkflows,
-  },
-  // Add more features as needed
-};
-
-/**
- * Detects which package managers are available in the environment
- */
-export async function detectPackageManagers(): Promise<
-  Record<string, boolean>
-> {
-  const packageManagers = {
-    npm: false,
-    yarn: false,
-    pnpm: false,
-    bun: false,
-  };
-
-  try {
-    await execa("npm", ["--version"]);
-    packageManagers.npm = true;
-  } catch (e) {}
-
-  try {
-    await execa("yarn", ["--version"]);
-    packageManagers.yarn = true;
-  } catch (e) {}
-
-  try {
-    await execa("pnpm", ["--version"]);
-    packageManagers.pnpm = true;
-  } catch (e) {}
-
-  try {
-    await execa("bun", ["--version"]);
-    packageManagers.bun = true;
-  } catch (e) {}
-
-  return packageManagers;
-}
-
-/**
- * Handles removing unselected feature-specific files from the target directory
- * and setting up selected features
- */
-async function applyFeatures(
-  targetDir: string,
-  selections: Record<string, string | boolean>
-): Promise<void> {
-  // First, set up selected features
-  const spinner = ora("Setting up selected features...").start();
-  try {
-    // Set up GitHub Workflows if selected
-    if (selections.includeGithubWorkflows) {
-      spinner.text = "Setting up GitHub workflows...";
-      await AVAILABLE_FEATURES.githubActions.setup(targetDir);
-      spinner.succeed("GitHub workflows set up successfully");
-    } else {
-      // If not selected, remove the .github directory
-      await safeRemove(path.join(targetDir, ".github"));
-    }
-
-    // Handle deployment platform
-    spinner.text = "Configuring deployment platform...";
-    if (selections.deploymentPlatform !== "vercel") {
-      await safeRemove(path.join(targetDir, "vercel.json"));
-    }
-
-    if (selections.deploymentPlatform !== "coolify") {
-      await safeRemove(path.join(targetDir, "docker-compose.coolify.yml"));
-    }
-
-    // Handle Docker configuration
-    spinner.text = "Configuring Docker...";
-    if (selections.dockerConfig === "none") {
-      // Remove all Docker files if Docker is not selected
-      await safeRemove(path.join(targetDir, "docker-compose.yml"));
-      await safeRemove(path.join(targetDir, "docker-compose.coolify.yml"));
-      await safeRemove(path.join(targetDir, "Dockerfile.nextjs"));
-      await safeRemove(path.join(targetDir, "Dockerfile.pocketbase"));
-      await safeRemove(path.join(targetDir, ".dockerignore"));
-    } else if (selections.dockerConfig === "standard") {
-      // Remove Coolify-specific Docker files
-      await safeRemove(path.join(targetDir, "docker-compose.coolify.yml"));
-    } else if (selections.dockerConfig === "coolify") {
-      // Rename Coolify docker-compose file to be the default
-      const coolifyDockerPath = path.join(
-        targetDir,
-        "docker-compose.coolify.yml"
-      );
-      const standardDockerPath = path.join(targetDir, "docker-compose.yml");
-
-      if (await fs.pathExists(coolifyDockerPath)) {
-        // Remove standard docker-compose if it exists
-        await safeRemove(standardDockerPath);
-        // Rename coolify to standard
-        await fs.rename(coolifyDockerPath, standardDockerPath);
-      }
-    }
-
-    // Handle image loader
-    spinner.text = "Configuring image loader...";
-    // First, copy the selected loader to loader.ts
-    const loaderPath = path.join(targetDir, "loader.ts");
-    const nextConfigPath = path.join(targetDir, "next.config.ts");
-
-    if (selections.imageLoader === "coolify") {
-      const coolifyLoaderPath = path.join(targetDir, "loader-coolify.ts");
-      if (await fs.pathExists(coolifyLoaderPath)) {
-        await fs.copy(coolifyLoaderPath, loaderPath, { overwrite: true });
-
-        // Update next.config.ts to use the custom loader
-        if (await fs.pathExists(nextConfigPath)) {
-          let config = await fs.readFile(nextConfigPath, "utf8");
-          config = config.replace(
-            /loaderFile: ['"].*?['"]/,
-            `loaderFile: './loader.ts'`
-          );
-          await fs.writeFile(nextConfigPath, config);
-        }
-      }
-    } else if (selections.imageLoader === "wsrv") {
-      const wsrvLoaderPath = path.join(targetDir, "loader-wsrv.ts");
-      if (await fs.pathExists(wsrvLoaderPath)) {
-        await fs.copy(wsrvLoaderPath, loaderPath, { overwrite: true });
-
-        // Update next.config.ts to use the custom loader
-        if (await fs.pathExists(nextConfigPath)) {
-          let config = await fs.readFile(nextConfigPath, "utf8");
-          config = config.replace(
-            /loaderFile: ['"].*?['"]/,
-            `loaderFile: './loader.ts'`
-          );
-          await fs.writeFile(nextConfigPath, config);
-        }
-      }
-    } else if (selections.imageLoader === "vercel") {
-      // For Vercel, don't create a loader file and update next.config.ts to remove custom loader
-      if (await fs.pathExists(nextConfigPath)) {
-        let config = await fs.readFile(nextConfigPath, "utf8");
-
-        // Remove the custom loader configuration by removing the entire images section or
-        // replacing it with an empty images object
-        config = config.replace(
-          /images:\s*{\s*loader:\s*['"]custom['"],\s*loaderFile:.*?},/s,
-          `images: {},`
-        );
-
-        await fs.writeFile(nextConfigPath, config);
-      }
-    }
-
-    // Remove all the original loader files
-    await safeRemove(path.join(targetDir, "loader-coolify.ts"));
-    await safeRemove(path.join(targetDir, "loader-wsrv.ts"));
-
-    // If using Vercel, also remove loader.ts if it exists
-    if (selections.imageLoader === "vercel") {
-      await safeRemove(loaderPath);
-    }
-
-    spinner.succeed("Features configured successfully");
-  } catch (error) {
-    spinner.fail(`Failed to configure features: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Fetches template files from GitHub if local templates aren't available
- */
-async function fetchTemplatesFromGitHub(targetDir: string): Promise<string> {
-  // Create a temporary directory
-  const tempDir = path.join(os.tmpdir(), `pocketnext-template-${Date.now()}`);
-  await fs.ensureDir(tempDir);
-
-  const spinner = ora("Downloading template files from GitHub...").start();
-
-  try {
-    // Download the repository archive
-    const url = `https://github.com/${REPO_OWNER}/${REPO_NAME}/archive/${BRANCH}.tar.gz`;
-    const tarballPath = path.join(tempDir, "repo.tar.gz");
-
-    // Use got to download the tarball
-    const buffer = await got(url).buffer();
-    await fs.writeFile(tarballPath, buffer);
-
-    // Extract only the templates directory
-    await tar.extract({
-      file: tarballPath,
-      cwd: tempDir,
-      filter: (path) => path.includes("templates/default"),
-    });
-
-    // Find the extracted templates directory
-    const extractedDir = path.join(tempDir, `${REPO_NAME}-${BRANCH}`);
-    const templatesDir = path.join(extractedDir, "templates/default");
-
-    spinner.succeed("Templates downloaded successfully from GitHub");
-    return templatesDir;
-  } catch (error) {
-    spinner.fail("Failed to download templates from GitHub");
-    console.error(error);
-    throw new Error("Failed to fetch template files from GitHub");
-  }
-}
+import { execSync } from "child_process";
+import { CreateOptions } from "@/types";
+import { getOnline, getPackageManager, updatePackageJson } from "@/utils";
+import { safeRemove } from "@/utils/fs";
+import { getTemplateDirectory } from "@/core/template";
+import { applyFeatures, FEATURE_CATEGORIES } from "@/core/features";
+import {
+  applyProfileSettings,
+  promptForProfile,
+  PROJECT_PROFILES,
+} from "@/core/profiles";
+import {
+  promptForPocketBaseVersion,
+  getPocketbaseVersions,
+} from "@/core/pocketbase/versions";
+import { runPocketBaseSetup } from "@/core/pocketbase/setup";
 
 /**
  * Main function to create a new PocketNext project
  */
 export async function createProject(
-  directory: string,
-  options: CreateOptions = {}
+  projectName: string,
+  options: Partial<CreateOptions> = {}
 ): Promise<void> {
   // Allow directory to be undefined/null when called from @latest command
-  const targetDir = directory || "my-app";
+  const targetDir = projectName || "my-app";
 
   // Resolve target directory
   const resolvedPath = path.resolve(targetDir);
-  const projectName = path.basename(resolvedPath);
 
-  // Variables to track feature selections
-  const featureSelections: Record<string, string | boolean> = {
-    deploymentPlatform: options.deploymentPlatform || "standard", // Default value
-    dockerConfig: options.dockerConfig || "standard", // Default value
-    imageLoader: options.imageLoader || "vercel", // Default value
-    includeGithubWorkflows: options.includeGithubWorkflows ?? false, // Default value
-  };
+  // Set up variables for cleanup
+  let createdDirectory = false;
+  let templateDir = "";
+
+  // Check if the target directory exists
+  if (fs.existsSync(resolvedPath)) {
+    if (fs.readdirSync(resolvedPath).length > 0) {
+      // Ask for confirmation before continuing
+      if (!options.yes) {
+        const { shouldContinue } = await prompts(
+          {
+            type: "confirm",
+            name: "shouldContinue",
+            message: `Directory ${chalk.cyan(targetDir)} exists and has content. Proceed anyway?`,
+            initial: false,
+          },
+          {
+            onCancel: () => {
+              console.log(
+                chalk.yellow("\nOperation canceled by user. Exiting...")
+              );
+              process.exit(0);
+            },
+          }
+        );
+
+        if (!shouldContinue) {
+          console.log(chalk.yellow("Operation cancelled."));
+          process.exit(0);
+        }
+      } else {
+        // If --yes flag was used, show a warning but continue
+        console.warn(
+          chalk.yellow(
+            `Warning: Dir ${chalk.cyan(targetDir)} exists and has content. Continuing as requested with --yes flag.`
+          )
+        );
+      }
+    }
+  } else {
+    // Mark that we'll be creating a new directory
+    createdDirectory = true;
+  }
 
   // Set up cleanup function for interruptions
-  let createdDirectory = false;
-  const cleanup = async () => {
-    if (createdDirectory) {
-      console.log();
-      console.log(chalk.yellow(`Cleaning up ${resolvedPath}...`));
+  const cleanup = async (tempOnly = false) => {
+    // Only remove the project directory if we created it ourselves AND we're not doing temp-only cleanup
+    // AND the process explicitly failed (exitCode is set to non-zero)
+    if (
+      createdDirectory &&
+      !tempOnly &&
+      process.exitCode !== undefined &&
+      process.exitCode !== 0
+    ) {
       try {
+        console.log(
+          chalk.yellow(`Cleaning up failed project directory ${resolvedPath}`)
+        );
         await fs.remove(resolvedPath);
-        console.log(chalk.green(`Successfully cleaned up ${resolvedPath}`));
       } catch (error) {
-        console.error(chalk.red(`Failed to clean up ${resolvedPath}`));
+        console.error(chalk.red(`Error cleaning up ${resolvedPath}`), error);
+      }
+    }
+
+    // Always clean up template directory if it was temporary
+    if (templateDir && templateDir.includes(".pocketnext-temp")) {
+      try {
+        // First get the parent temp directory
+        const tempParentDir = path.join(process.cwd(), ".pocketnext-temp");
+        await safeRemove(tempParentDir);
+        // Silent cleanup - no message
+      } catch (error) {
+        console.error(
+          chalk.red(`Error cleaning up template directory: ${error}`)
+        );
       }
     }
   };
 
   // Set up SIGINT handler to properly clean up and exit
   const handleSigInt = async () => {
+    console.log(chalk.yellow("\nOperation canceled. Cleaning up..."));
     await cleanup();
     process.exit(0);
   };
@@ -477,269 +124,437 @@ export async function createProject(
   process.on("SIGINT", handleSigInt);
   process.on("SIGTERM", handleSigInt);
 
+  // Configure global prompt cancellation behavior
+  const promptsOptions = {
+    onCancel: () => {
+      console.log(chalk.yellow("\nOperation canceled by user. Exiting..."));
+      process.exit(0);
+    },
+  };
+
   try {
-    // Check if directory exists and is empty
-    if (fs.existsSync(resolvedPath)) {
-      const contents = fs.readdirSync(resolvedPath);
-      if (contents.length > 0) {
-        if (!options.yes) {
-          const { proceed } = await prompts({
-            type: "confirm",
-            name: "proceed",
-            message: `Directory "${directory}" already exists and is not empty. Continue?`,
-            initial: false,
-            onCancel: () => {
-              // Don't call handleSigInt directly
-              // Just return false to indicate cancellation
-              return false;
-            },
-          });
-
-          // Check if we got a response - if proceed is undefined, it was cancelled
-          if (proceed === undefined) {
-            await cleanup();
-            process.exit(0);
-          }
-
-          // If user selected no (either by pressing N or Enter as initial is false)
-          if (!proceed) {
-            return;
-          }
-        }
-      }
-    } else {
-      // Create directory if it doesn't exist
-      fs.ensureDirSync(resolvedPath);
-      createdDirectory = true;
-    }
-
-    // Check for network connectivity
-    const online = await getOnline();
-    if (!online) {
-      console.log(chalk.yellow("You appear to be offline. Setup may fail."));
-    }
-
-    // Get package manager
+    // Step 1: Determine package manager
     const packageManager =
       options.packageManager || (await getPackageManager(options));
+    // console.log(chalk.cyan(`Using ${packageManager} as package manager`));
 
-    // Store back in options for consistency
-    if (!options.packageManager) {
-      options.packageManager = packageManager;
+    // Initialize options with package manager
+    let finalOptions = {
+      ...options,
+      packageManager,
+    } as CreateOptions & { packageManager: string };
+
+    // Step 2: Determine if using a profile or custom setup
+    if (finalOptions.profile) {
+      // If profile explicitly passed, use it directly
+      finalOptions = applyProfileSettings(
+        finalOptions,
+        finalOptions.profile
+      ) as CreateOptions & { packageManager: string };
+    }
+    // If not in quick mode and no profile specified, prompt for profile
+    else if (!options.yes && !options.quick) {
+      // Show profile selection
+      const selectedProfile = await promptForProfile();
+      finalOptions.profile = selectedProfile;
+
+      // Apply profile settings
+      finalOptions = applyProfileSettings(
+        finalOptions,
+        selectedProfile
+      ) as CreateOptions & { packageManager: string };
     }
 
-    // If options.yes is true, use defaults without prompting
+    // Step 3: Ask for custom options only if 'custom' profile is selected
+    // or if specific options weren't set by the profile
     if (!options.yes) {
-      // Prompt for feature selections if not using --yes flag
-      for (const category of FEATURE_CATEGORIES) {
-        try {
-          const response = await prompts(
+      // Handle deployment platform
+      if (
+        finalOptions.profile === "custom" ||
+        !finalOptions.deploymentPlatform
+      ) {
+        // Prompt for deployment platform
+        const deploymentCategory = FEATURE_CATEGORIES.find(
+          (cat) => cat.id === "deployment"
+        );
+
+        if (deploymentCategory) {
+          const deploymentSelection = await prompts(
             {
               type: "select",
-              name: "selection",
-              message: category.name,
-              hint: category.description,
-              choices: category.options.map((option) => ({
+              name: "option",
+              message: deploymentCategory.description,
+              choices: deploymentCategory.options.map((option) => ({
                 title: option.name,
                 description: option.description,
                 value: option.id,
               })),
               initial: 0,
             },
-            {
-              onCancel: () => {
-                // Don't call handleSigInt directly
-                // Just return false to indicate cancellation
-                return false;
-              },
-            }
+            promptsOptions
           );
 
-          // Check if we got a response - if nothing was returned, it was cancelled
-          if (response === undefined || response.selection === undefined) {
-            await cleanup();
-            process.exit(0);
+          if (deploymentSelection.option) {
+            finalOptions.deploymentPlatform = deploymentSelection.option;
           }
+        }
+      }
 
-          const selection = response.selection;
+      // Handle Docker configuration
+      if (finalOptions.profile === "custom" || !finalOptions.dockerConfig) {
+        // Prompt for Docker configuration
+        const dockerCategory = FEATURE_CATEGORIES.find(
+          (cat) => cat.id === "docker"
+        );
 
-          if (category.id === "workflows") {
-            featureSelections.includeGithubWorkflows = selection === "include";
-          } else {
-            featureSelections[category.id] = selection;
+        if (dockerCategory) {
+          const dockerSelection = await prompts(
+            {
+              type: "select",
+              name: "option",
+              message: dockerCategory.description,
+              choices: dockerCategory.options.map((option) => ({
+                title: option.name,
+                description: option.description,
+                value: option.id,
+              })),
+              initial: 0,
+            },
+            promptsOptions
+          );
+
+          if (dockerSelection.option) {
+            finalOptions.dockerConfig = dockerSelection.option;
           }
-        } catch (error) {
-          console.log(`Error during ${category.name} selection: ${error}`);
-          // Use default value if there's an error
-          if (category.id === "workflows") {
-            featureSelections.includeGithubWorkflows = false;
-          } else {
-            // Use the first option as default
-            featureSelections[category.id] = category.options[0].id;
+        }
+      }
+
+      // Handle image loader
+      if (finalOptions.profile === "custom" || !finalOptions.imageLoader) {
+        // Prompt for image loader
+        const imageLoaderCategory = FEATURE_CATEGORIES.find(
+          (cat) => cat.id === "imageLoader"
+        );
+
+        if (imageLoaderCategory) {
+          const imageLoaderSelection = await prompts(
+            {
+              type: "select",
+              name: "option",
+              message: imageLoaderCategory.description,
+              choices: imageLoaderCategory.options.map((option) => ({
+                title: option.name,
+                description: option.description,
+                value: option.id,
+              })),
+              initial: 0,
+            },
+            promptsOptions
+          );
+
+          if (imageLoaderSelection.option) {
+            finalOptions.imageLoader = imageLoaderSelection.option;
           }
+        }
+      }
+
+      // Handle GitHub workflows
+      if (
+        finalOptions.profile === "custom" ||
+        finalOptions.includeGithubWorkflows === undefined
+      ) {
+        // Prompt for GitHub workflows
+        const githubSelection = await prompts(
+          {
+            type: "confirm",
+            name: "include",
+            message: "Add GitHub CI/CD workflows?",
+            initial: false,
+          },
+          promptsOptions
+        );
+
+        finalOptions.includeGithubWorkflows = githubSelection.include;
+      }
+
+      // Handle script handling
+      if (finalOptions.profile === "custom" || !finalOptions.scriptsHandling) {
+        // Prompt for scripts handling
+        const scriptsSelection = await prompts(
+          {
+            type: "select",
+            name: "option",
+            message: "PocketBase setup scripts handling:",
+            choices: [
+              {
+                title: "Keep scripts",
+                description: "Don't run scripts automatically",
+                value: "keep",
+              },
+              {
+                title: "Run and keep",
+                description: "Run scripts once and keep them",
+                value: "runAndKeep",
+              },
+              {
+                title: "Run and delete",
+                description: "Run scripts once and delete them",
+                value: "runAndDelete",
+              },
+            ],
+            initial: 1, // Default to runAndKeep
+          },
+          promptsOptions
+        );
+
+        if (scriptsSelection.option) {
+          finalOptions.scriptsHandling = scriptsSelection.option;
+        }
+      }
+
+      // Handle PocketBase version
+      if (
+        finalOptions.profile === "custom" ||
+        !finalOptions.pocketbaseVersion
+      ) {
+        if (!options.yes && !finalOptions.pocketbaseVersion) {
+          finalOptions.pocketbaseVersion = await promptForPocketBaseVersion();
         }
       }
     }
 
-    // Now that we have all user selections, find and copy the template
-    // Try to resolve template path in various ways for robustness
-    let templateDir;
-    let foundLocally = false;
+    // ALL USER INTERACTIONS COMPLETE
 
-    // First, try to find templates locally
+    // Create a main spinner for tracking progress AFTER all selections
+    const mainSpinner = ora(chalk.bold("Setting up your project...")).start();
+
+    // Step 4: Actually set up the project with the selected options
     try {
-      // First try using import.meta.url (ESM approach)
-      templateDir = path.resolve(
-        fileURLToPath(import.meta.url),
-        "../../../templates/default"
-      );
+      // Determine template directory
+      try {
+        // Update spinner text to indicate template search
+        mainSpinner.text = chalk.bold("Fetching project templates...");
 
-      // Check if the directory exists
-      if (fs.existsSync(templateDir)) {
-        foundLocally = true;
-      } else {
-        // Try from package root (when installed via npm/bun)
-        const packageDir = path.resolve(
-          fileURLToPath(import.meta.url),
-          "../../../../"
+        templateDir = await getTemplateDirectory(mainSpinner);
+        if (!templateDir) {
+          throw new Error("Failed to find or create template directory");
+        }
+
+        // Update spinner text for the next step
+        mainSpinner.text = chalk.bold("Copying template files...");
+      } catch (error) {
+        mainSpinner.fail("Template setup failed");
+        console.error(chalk.red("Error finding templates:"), error);
+        console.log(chalk.yellow("\nTroubleshooting tips:"));
+        console.log("1. Ensure you have an internet connection");
+        console.log("2. Check that Git is installed and in your PATH");
+        console.log(
+          "3. Try installing globally with: npm install -g pocketnext"
         );
-        templateDir = path.resolve(packageDir, "templates/default");
+        console.log(
+          "4. Try cloning the repository manually and using local files"
+        );
+        throw error;
+      }
 
-        if (fs.existsSync(templateDir)) {
-          foundLocally = true;
-        } else {
-          // Try with node_modules paths
-          const possiblePaths = [
-            // When installed globally or via npx/bunx
-            path.resolve(
-              process.execPath,
-              "../../lib/node_modules/pocketnext/templates/default"
-            ),
-            // Current working directory
-            path.resolve(process.cwd(), "templates/default"),
-            // When running from source
-            path.resolve(
-              process.cwd(),
-              "node_modules/pocketnext/templates/default"
-            ),
-          ];
+      // Copy template files to target directory
+      mainSpinner.text = chalk.bold("Copying template files...");
+      try {
+        // Ensure target directory exists
+        fs.ensureDirSync(resolvedPath);
+        createdDirectory = true;
 
-          for (const potentialPath of possiblePaths) {
-            if (fs.existsSync(potentialPath)) {
-              templateDir = potentialPath;
-              foundLocally = true;
-              break;
+        // Check if template directory has contents
+        if (!fs.existsSync(templateDir)) {
+          throw new Error("Template directory does not exist: " + templateDir);
+        }
+
+        // Update main spinner to show we're copying files
+        mainSpinner.text = chalk.bold(
+          `Copying template files to ${chalk.cyan(resolvedPath)}...`
+        );
+
+        // Use the simple fs.copy approach that worked before
+        await fs.copy(templateDir, resolvedPath, {
+          overwrite: true,
+          filter: (src) =>
+            !src.includes("node_modules") && !src.includes(".git"),
+        });
+
+        // Verify directory was created and has content
+        if (!fs.existsSync(resolvedPath)) {
+          throw new Error("Project directory was not created: " + resolvedPath);
+        }
+
+        // Check if directory has content but don't log the details
+        const projectFiles = fs.readdirSync(resolvedPath);
+        if (projectFiles.length === 0) {
+          // Try direct copying of individual files
+          mainSpinner.text = chalk.bold(
+            "Directory empty, trying alternative copy method..."
+          );
+
+          const templateFiles = fs.readdirSync(templateDir);
+          for (const file of templateFiles) {
+            // Skip node_modules and .git directories
+            if (file === "node_modules" || file === ".git") continue;
+
+            const srcPath = path.join(templateDir, file);
+            const destPath = path.join(resolvedPath, file);
+
+            if (fs.statSync(srcPath).isDirectory()) {
+              fs.copySync(srcPath, destPath);
+            } else {
+              fs.copyFileSync(srcPath, destPath);
             }
           }
+
+          // Check again if files were copied
+          const verifyFiles = fs.readdirSync(resolvedPath);
+          if (verifyFiles.length === 0) {
+            throw new Error(
+              "Failed to copy template files to project directory"
+            );
+          }
+        }
+
+        // Update the main spinner to show continued progress
+        mainSpinner.text = chalk.bold("Finalizing project setup...");
+      } catch (error) {
+        mainSpinner.fail("Setup failed");
+        console.error(chalk.red("Error copying template files"), error);
+        await cleanup();
+        process.exit(1);
+      }
+
+      // Apply selected features
+      await applyFeatures(resolvedPath, finalOptions, mainSpinner);
+
+      // Apply the deployment platform configuration if specified
+      if (finalOptions.deploymentPlatform) {
+        mainSpinner.text = chalk.bold(
+          `Applying ${finalOptions.deploymentPlatform} deployment configuration...`
+        );
+        await applyFeatures(resolvedPath, finalOptions, mainSpinner);
+      }
+
+      // Update package.json with project name and options
+      mainSpinner.text = chalk.bold("Updating package.json...");
+      await updatePackageJson(
+        path.join(resolvedPath, "package.json"),
+        (data) => {
+          // Update package name
+          data.name = path.basename(resolvedPath);
+          // Add feature specific package.json changes here
+          return data;
+        }
+      );
+
+      // Install dependencies if not skipped
+      if (!finalOptions.skipInstall) {
+        mainSpinner.text = chalk.bold("Installing dependencies...");
+
+        try {
+          if (packageManager === "yarn") {
+            execSync(`cd ${resolvedPath} && yarn install`, { stdio: "ignore" });
+          } else if (packageManager === "pnpm") {
+            execSync(`cd ${resolvedPath} && pnpm install`, { stdio: "ignore" });
+          } else if (packageManager === "bun") {
+            execSync(`cd ${resolvedPath} && bun install`, { stdio: "ignore" });
+          } else {
+            // Default to npm
+            execSync(`cd ${resolvedPath} && npm install`, { stdio: "ignore" });
+          }
+        } catch (error) {
+          mainSpinner.fail("Failed to install dependencies");
+          console.error(chalk.red("Error installing dependencies"), error);
+          await cleanup();
+          process.exit(1);
+        }
+      } else {
+        mainSpinner.text = chalk.bold("Skipping dependency installation...");
+      }
+
+      // Handle PocketBase setup based on user choice
+      const pbSetupOption = finalOptions.scriptsHandling || "keep";
+
+      if (pbSetupOption !== "keep") {
+        mainSpinner.text = chalk.bold("Setting up PocketBase...");
+        try {
+          // Run PocketBase setup on the target directory
+          await runPocketBaseSetup(
+            resolvedPath,
+            packageManager,
+            finalOptions.pocketbaseVersion,
+            mainSpinner
+          );
+
+          // If the user chose to delete the scripts after running them
+          if (pbSetupOption === "runAndDelete") {
+            mainSpinner.text = chalk.bold(
+              "Removing PocketBase setup scripts..."
+            );
+            // Remove the scripts from package.json and the scripts directory
+            await updatePackageJson(
+              path.join(resolvedPath, "package.json"),
+              (data) => {
+                // Remove setup related scripts
+                if (data.scripts) {
+                  delete data.scripts["setup:db"];
+                  delete data.scripts["setup:admin"];
+                  delete data.scripts["setup"];
+                }
+                return data;
+              }
+            );
+
+            // Remove scripts directory
+            const scriptsDir = path.join(resolvedPath, "scripts");
+            if (fs.existsSync(scriptsDir)) {
+              await fs.remove(scriptsDir);
+            }
+          }
+        } catch (error) {
+          mainSpinner.fail("Failed to set up PocketBase");
+          console.error(chalk.red("Error setting up PocketBase"), error);
+          await cleanup();
+          process.exit(1);
         }
       }
+
+      // Final step - update spinner text to show we're completing
+      mainSpinner.text = chalk.bold("Completing project setup...");
+
+      // Success! Display completion message
+      mainSpinner.succeed("Project setup complete!");
+
+      // Clean up any temporary files but preserve the project
+      await cleanup(true);
+
+      // We'll let the calling code handle success messages
+      // Project creation completed successfully
+      return;
     } catch (error) {
-      console.log(
-        chalk.yellow(
-          "Could not find local templates, will try downloading from GitHub..."
+      mainSpinner.fail("Failed to set up project");
+      console.error(
+        chalk.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`
         )
       );
-    }
-
-    // If templates weren't found locally, try to fetch from GitHub
-    if (!foundLocally) {
-      const isOnline = await getOnline();
-
-      if (!isOnline) {
-        console.error(
-          chalk.red(
-            "Error: Cannot find templates locally and you appear to be offline."
-          )
-        );
-        console.log(chalk.yellow("To fix this, you can:"));
-        console.log("1. Connect to the internet to download templates");
-        console.log("2. Run from the source directory with templates folder");
-        console.log("3. Clone the repository from GitHub");
-        throw new Error(
-          "Template directory not found and cannot download (offline)"
-        );
-      }
-
-      try {
-        console.log(
-          chalk.yellow(
-            "Templates not found locally. Downloading from GitHub..."
-          )
-        );
-        templateDir = await fetchTemplatesFromGitHub(resolvedPath);
-      } catch (error) {
-        console.error(chalk.red("Error: Failed to download templates."));
-        console.log(chalk.yellow("To fix this, you can:"));
-        console.log("1. Run from the source directory");
-        console.log("2. Install pocketnext globally with npm/bun");
-        console.log("3. Clone the repository from GitHub");
-        throw new Error("Failed to get templates: " + (error as Error).message);
-      }
-    }
-
-    // Copy template to destination
-    const copySpinner = ora(
-      `Creating project in ${chalk.cyan(resolvedPath)}...`
-    ).start();
-    try {
-      // Check if we found a valid template directory
-      if (!templateDir) {
-        throw new Error("Could not locate template directory");
-      }
-
-      await fs.copy(templateDir, resolvedPath, {
-        overwrite: true,
-        filter: (src) => !src.includes("node_modules") && !src.includes(".git"),
-      });
-      copySpinner.succeed(`Created project in ${chalk.cyan(resolvedPath)}`);
-    } catch (error) {
-      copySpinner.fail(
-        `Failed to create project in ${chalk.red(resolvedPath)}`
-      );
-      console.error(error);
+      // Only do a full cleanup (including project directory) on error
       await cleanup();
       process.exit(1);
     }
-
-    // Apply feature selections to the copied files
-    const featureSpinner = ora(
-      "Customizing project based on selections..."
-    ).start();
-    try {
-      await applyFeatures(resolvedPath, featureSelections);
-      featureSpinner.succeed("Project customized successfully");
-    } catch (error) {
-      featureSpinner.fail(
-        `Failed to apply features: ${(error as Error).message}`
-      );
-      throw error;
-    }
-
-    // Install dependencies
-    if (!options.skipInstall) {
-      const spinner = ora("Installing dependencies...").start();
-      try {
-        const installArgs = packageManager === "npm" ? ["install"] : [];
-        await execa(packageManager, installArgs, {
-          cwd: resolvedPath,
-        });
-        spinner.succeed("Dependencies installed successfully");
-      } catch (error) {
-        spinner.fail("Failed to install dependencies");
-        console.error(
-          chalk.red("Installation failed, continuing without dependencies")
-        );
-      }
-    }
   } catch (error) {
-    // Clean up on error
+    // Handle any uncaught errors
+    console.error(chalk.red("Failed to set up project"));
+    console.error(
+      chalk.red(
+        `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    // Only do a full cleanup (including project directory) on error
     await cleanup();
-    // Report error
-    console.error(chalk.red("Failed to create project:"), error);
     process.exit(1);
-  } finally {
-    // Always remove the event handlers
-    process.off("SIGINT", handleSigInt);
-    process.off("SIGTERM", handleSigInt);
   }
 }

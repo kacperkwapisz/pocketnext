@@ -19,6 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Coming soon...
 
+## [0.8.0] - 2025-03-04
+
+### Added
+
+- Implemented direct template download fallback mechanism if GitHub fetching fails
+- Added template directory verification to ensure projects always have valid content
+- Enhanced the template fetching process to accommodate bunx/npx execution model
+
+### Improved
+
+- Unified spinner management across the entire CLI for a smoother user experience
+- Enhanced error handling with better user-friendly messages and troubleshooting tips
+- Added verification steps to ensure project directories are properly created
+
+### Fixed
+
+- Fixed template fetching failures when using bunx or npx to run the CLI
+- Fixed project directories sometimes being empty despite successful creation
+- Fixed spinner inconsistencies between different processes during project creation
+
 ## [0.7.9] - 2025-03-03
 
 ### Improved

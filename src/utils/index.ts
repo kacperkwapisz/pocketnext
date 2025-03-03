@@ -6,6 +6,15 @@ import got from "got";
 import chalk from "chalk";
 import type { CreateOptions } from "../types";
 
+// Add a declaration for the Bun-specific property
+declare global {
+  namespace NodeJS {
+    interface Process {
+      isBun?: boolean;
+    }
+  }
+}
+
 /**
  * Checks if the user is online
  */
@@ -97,10 +106,14 @@ Create a new PocketNext project with an interactive setup experience.
 
 ${chalk.bold("Options:")}
   -v, --version                Display the version number
-  --deployment <platform>      Deployment platform: vercel, coolify, standard (default: standard)
-  --docker <config>            Docker configuration: standard, coolify, none (default: standard)
-  --image-loader <type>        Image loader: vercel, coolify, wsrv (default: vercel)
-  --github-workflows           Include GitHub workflow files (default: false)
+  --profile <profile>          Project setup profile: minimal, standard, production, custom
+  --quick                      Use sensible defaults with minimal prompts
+  --deployment <platform>      Deployment platform: vercel, coolify, standard
+  --docker <config>            Docker configuration: standard, coolify, none
+  --image-loader <type>        Image loader: vercel, coolify, wsrv
+  --github-workflows           Include GitHub workflow files
+  --scripts <option>           Scripts handling: keep, runAndKeep, runAndDelete
+  --pb-version <version>       PocketBase version to install (format: x.y.z)
   --use-npm                    Use npm as package manager
   --use-yarn                   Use yarn as package manager
   --use-pnpm                   Use pnpm as package manager
@@ -111,11 +124,22 @@ ${chalk.bold("Options:")}
 
 ${chalk.bold("Examples:")}
   bunx pocketnext@latest my-app
-  bunx pocketnext@latest my-app --use-npm
-  bunx pocketnext@latest my-app --deployment vercel --image-loader vercel
-  bunx pocketnext@latest my-app --docker coolify --github-workflows -y`);
+  bunx pocketnext@latest my-app --profile=minimal
+  bunx pocketnext@latest my-app --profile=production --deployment=coolify
+  bunx pocketnext@latest my-app --quick
+  bunx pocketnext@latest my-app --scripts runAndDelete --pb-version 0.25.9`);
   process.exit(0);
 }
+
+// Re-export utility functions
+export {
+  safeRemove,
+  ensureDirectory,
+  copyDirectory,
+  executeCommand,
+  pathExists,
+  updatePackageJson,
+} from "./fs";
 
 // Export all utility functions
 export * from "./cli";

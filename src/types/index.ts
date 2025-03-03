@@ -10,7 +10,25 @@ export interface CreateOptions {
   dockerConfig?: string;
   imageLoader?: string;
   includeGithubWorkflows?: boolean;
+  scriptsHandling?: "keep" | "runAndKeep" | "runAndDelete";
+  pocketbaseVersion?: string;
+  profile?: string;
+  quick?: boolean;
   [key: string]: any;
+}
+
+export interface ProjectProfile {
+  id: string;
+  name: string;
+  description: string;
+  features?: {
+    deploymentPlatform?: string;
+    dockerConfig?: string;
+    imageLoader?: string;
+    includeGithubWorkflows?: boolean;
+    scriptsHandling?: "keep" | "runAndKeep" | "runAndDelete";
+    pocketbaseVersion?: string;
+  };
 }
 
 export interface Feature {

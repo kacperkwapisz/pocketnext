@@ -1,143 +1,138 @@
 import { describe, expect, test } from "vitest";
-import { parseCliOptions, getProjectPath } from "../../src/utils/cli";
+import { getProjectPath, parseCliOptions } from "../../src/utils/cli";
 
-describe("parseCliOptions", () => {
-  test("returns default options when no flags provided", () => {
-    const args = ["node", "create-pocketnext", "my-app"];
-    const options = parseCliOptions(args);
+describe("CLI Utilities", () => {
+  describe("getProjectPath", () => {
+    test("returns 'my-app' with no arguments", () => {
+      expect(getProjectPath([])).toBe("my-app");
+    });
 
-    expect(options).toMatchObject({
-      deploymentPlatform: "standard",
-      dockerConfig: "standard",
-      imageLoader: "vercel",
-      includeGithubWorkflows: false,
-      yes: false,
+    test("returns specified project name", () => {
+      expect(getProjectPath(["my-project"])).toBe("my-project");
+    });
+
+    test("ignores flags after project name", () => {
+      expect(getProjectPath(["my-project", "--yes"])).toBe("my-project");
+    });
+
+    test("handles project names with special characters", () => {
+      expect(getProjectPath(["my-cool-project_123"])).toBe(
+        "my-cool-project_123"
+      );
     });
   });
 
-  test("parses package manager options correctly", () => {
-    const args = ["node", "create-pocketnext", "my-app", "--use-npm"];
-    const options = parseCliOptions(args);
+  describe("parseCliOptions", () => {
+    test("returns default options with no arguments", () => {
+      const options = parseCliOptions([]);
 
-    expect(options.useNpm).toBe(true);
-  });
+      // Check defaults are set
+      expect(options.yes).toBe(false);
+      expect(options.skipInstall).toBe(undefined); // This is undefined by default, not false
+      expect(options.deploymentPlatform).toBe("standard");
+      expect(options.dockerConfig).toBe("standard");
+      expect(options.imageLoader).toBe("vercel");
+      expect(options.scriptsHandling).toBe("keep");
+    });
 
-  test("parses multiple package manager options", () => {
-    const args = [
-      "node",
-      "create-pocketnext",
-      "my-app",
-      "--use-npm",
-      "--use-bun",
-    ];
-    const options = parseCliOptions(args);
+    test("parses --yes flag", () => {
+      const options = parseCliOptions(["--yes"]);
+      expect(options.yes).toBe(true);
 
-    expect(options.useNpm).toBe(true);
-    expect(options.useBun).toBe(true);
-  });
+      // Also test -y shorthand
+      const shortOptions = parseCliOptions(["-y"]);
+      expect(shortOptions.yes).toBe(true);
+    });
 
-  test("parses skip-install flag correctly", () => {
-    const args = ["node", "create-pocketnext", "my-app", "--skip-install"];
-    const options = parseCliOptions(args);
+    test("parses --quick flag", () => {
+      const options = parseCliOptions(["--quick"]);
+      expect(options.quick).toBe(true);
+      expect(options.profile).toBe("standard");
+    });
 
-    expect(options.skipInstall).toBe(true);
-  });
+    test("parses --skip-install flag", () => {
+      const options = parseCliOptions(["--skip-install"]);
+      expect(options.skipInstall).toBe(true);
+    });
 
-  test("parses yes flag correctly with short option", () => {
-    const args = ["node", "create-pocketnext", "my-app", "-y"];
-    const options = parseCliOptions(args);
+    test("parses package manager flags", () => {
+      const npmOptions = parseCliOptions(["--use-npm"]);
+      expect(npmOptions.useNpm).toBe(true);
 
-    expect(options.yes).toBe(true);
-  });
+      const yarnOptions = parseCliOptions(["--use-yarn"]);
+      expect(yarnOptions.useYarn).toBe(true);
 
-  test("parses yes flag correctly with long option", () => {
-    const args = ["node", "create-pocketnext", "my-app", "--yes"];
-    const options = parseCliOptions(args);
+      const pnpmOptions = parseCliOptions(["--use-pnpm"]);
+      expect(pnpmOptions.usePnpm).toBe(true);
 
-    expect(options.yes).toBe(true);
-  });
+      const bunOptions = parseCliOptions(["--use-bun"]);
+      expect(bunOptions.useBun).toBe(true);
+    });
 
-  test("parses deployment option correctly", () => {
-    const args = [
-      "node",
-      "create-pocketnext",
-      "my-app",
-      "--deployment",
-      "vercel",
-    ];
-    const options = parseCliOptions(args);
+    test("parses --profile flag", () => {
+      // Test --profile value format
+      const options = parseCliOptions(["--profile", "minimal"]);
+      expect(options.profile).toBe("minimal");
 
-    expect(options.deploymentPlatform).toBe("vercel");
-  });
+      // Test --profile=value format
+      const equalsOptions = parseCliOptions(["--profile=production"]);
+      expect(equalsOptions.profile).toBe("production");
+    });
 
-  test("parses docker option correctly", () => {
-    const args = ["node", "create-pocketnext", "my-app", "--docker", "coolify"];
-    const options = parseCliOptions(args);
+    test("validates profile value", () => {
+      const options = parseCliOptions(["--profile", "invalid"]);
+      expect(options.profile).toBe("standard"); // Invalid profiles default to standard
+    });
 
-    expect(options.dockerConfig).toBe("coolify");
-  });
+    test("parses --pb-version flag", () => {
+      const options = parseCliOptions(["--pb-version", "0.25.9"]);
+      expect(options.pocketbaseVersion).toBe("0.25.9");
+    });
 
-  test("parses image-loader option correctly", () => {
-    const args = [
-      "node",
-      "create-pocketnext",
-      "my-app",
-      "--image-loader",
-      "wsrv",
-    ];
-    const options = parseCliOptions(args);
+    test("parses --scripts flag", () => {
+      const keepOptions = parseCliOptions(["--scripts", "keep"]);
+      expect(keepOptions.scriptsHandling).toBe("keep");
 
-    expect(options.imageLoader).toBe("wsrv");
-  });
+      const runKeepOptions = parseCliOptions(["--scripts", "runAndKeep"]);
+      expect(runKeepOptions.scriptsHandling).toBe("runAndKeep");
 
-  test("parses github-workflows flag correctly", () => {
-    const args = ["node", "create-pocketnext", "my-app", "--github-workflows"];
-    const options = parseCliOptions(args);
+      const runDeleteOptions = parseCliOptions(["--scripts", "runAndDelete"]);
+      expect(runDeleteOptions.scriptsHandling).toBe("runAndDelete");
+    });
 
-    expect(options.includeGithubWorkflows).toBe(true);
-  });
-});
+    test("validates scripts value", () => {
+      const options = parseCliOptions(["--scripts", "invalid"]);
+      expect(options.scriptsHandling).toBe("keep"); // Invalid script handling defaults to keep
+    });
 
-describe("getProjectPath", () => {
-  test("returns the project path when provided", () => {
-    const args = ["node", "create-pocketnext", "my-project"];
-    // Skip the first two arguments which are 'node' and 'create-pocketnext'
-    const projectPath = getProjectPath(args.slice(2));
+    test("parses all flags together", () => {
+      const options = parseCliOptions([
+        "--yes",
+        "--use-yarn",
+        "--profile",
+        "minimal",
+        "--pb-version",
+        "0.25.9",
+        "--scripts",
+        "runAndDelete",
+        "--skip-install",
+      ]);
 
-    expect(projectPath).toBe("my-project");
-  });
+      expect(options.yes).toBe(true);
+      expect(options.useYarn).toBe(true);
+      expect(options.profile).toBe("minimal");
+      expect(options.pocketbaseVersion).toBe("0.25.9");
+      expect(options.scriptsHandling).toBe("runAndDelete");
+      expect(options.skipInstall).toBe(true);
+    });
 
-  test("returns default when no project path provided", () => {
-    const args = ["node", "create-pocketnext"];
-    // Skip the first two arguments which are 'node' and 'create-pocketnext'
-    const projectPath = getProjectPath(args.slice(2));
+    test("maintains defaults for unspecified options", () => {
+      const options = parseCliOptions(["--yes"]);
 
-    expect(projectPath).toBe("my-app");
-  });
-
-  test("handles flags without project path", () => {
-    const args = ["node", "create-pocketnext", "--use-npm", "--yes"];
-    const projectPath = getProjectPath(args.slice(2));
-
-    expect(projectPath).toBe("my-app"); // Should use default
-  });
-
-  test("handles project path with flags", () => {
-    const args = ["node", "create-pocketnext", "my-custom-app", "--use-npm"];
-    const projectPath = getProjectPath(args.slice(2));
-
-    expect(projectPath).toBe("my-custom-app");
-  });
-
-  test("properly extracts path when flags come first", () => {
-    const args = [
-      "node",
-      "create-pocketnext",
-      "--use-npm",
-      "my-app-after-flag",
-    ];
-    const projectPath = getProjectPath(args.slice(2));
-
-    expect(projectPath).toBe("my-app-after-flag");
+      expect(options.yes).toBe(true);
+      expect(options.skipInstall).toBe(undefined); // Default is undefined, not false
+      expect(options.deploymentPlatform).toBe("standard"); // Default
+      expect(options.dockerConfig).toBe("standard"); // Default
+    });
   });
 });

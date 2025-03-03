@@ -32,11 +32,21 @@ export function parseCliOptions(args: string[]): CreateOptions {
     dockerConfig: "standard",
     imageLoader: "vercel",
     includeGithubWorkflows: false,
+    scriptsHandling: "keep", // Default to keeping scripts
   };
 
   // Check for -y/--yes flag to enable non-interactive mode
   if (args.includes("-y") || args.includes("--yes")) {
     options.yes = true;
+  }
+
+  // Check for --quick flag to enable simplified setup with minimal prompts
+  if (args.includes("--quick")) {
+    options.quick = true;
+    // Quick mode sets "standard" profile by default, but still allows customization
+    if (!args.includes("--profile")) {
+      options.profile = "standard";
+    }
   }
 
   // Check for package manager flags
@@ -86,6 +96,59 @@ export function parseCliOptions(args: string[]): CreateOptions {
       "vercel",
       "image loader"
     );
+  }
+
+  // Check for scripts handling
+  const scriptsIndex = args.findIndex((arg) => arg === "--scripts");
+  if (scriptsIndex !== -1 && args.length > scriptsIndex + 1) {
+    const value = args[scriptsIndex + 1];
+    options.scriptsHandling = validateOption(
+      value,
+      ["keep", "runAndKeep", "runAndDelete"],
+      "keep",
+      "scripts handling"
+    ) as "keep" | "runAndKeep" | "runAndDelete";
+  }
+
+  // Check for PocketBase version
+  const versionIndex = args.findIndex((arg) => arg === "--pb-version");
+  if (versionIndex !== -1 && args.length > versionIndex + 1) {
+    // Validate semver format with a simple regex (major.minor.patch)
+    const value = args[versionIndex + 1];
+    const semverRegex = /^\d+\.\d+\.\d+$/;
+    if (semverRegex.test(value)) {
+      options.pocketbaseVersion = value;
+    } else {
+      console.warn(
+        chalk.yellow(
+          `Warning: Invalid PocketBase version format "${value}". Must be in format x.y.z. Using default version instead.`
+        )
+      );
+    }
+  }
+
+  // Check for profile
+  const profileIndex = args.findIndex(
+    (arg) => arg === "--profile" || arg.startsWith("--profile=")
+  );
+  if (profileIndex !== -1) {
+    let value;
+    if (args[profileIndex].includes("=")) {
+      // Handle --profile=value format
+      value = args[profileIndex].split("=")[1];
+    } else if (args.length > profileIndex + 1) {
+      // Handle --profile value format
+      value = args[profileIndex + 1];
+    }
+
+    if (value) {
+      options.profile = validateOption(
+        value,
+        ["minimal", "standard", "production", "custom"],
+        "standard",
+        "project profile"
+      );
+    }
   }
 
   return options;

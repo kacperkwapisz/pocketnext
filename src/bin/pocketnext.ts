@@ -55,7 +55,7 @@ try {
 }
 
 // If we still don't have a package.json, use a hardcoded version
-let version = "0.7.0"; // Fallback version
+let version = "0.7.9"; // Fallback version
 try {
   if (packageJsonPath) {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
@@ -185,32 +185,6 @@ async function run() {
 
       // Display success message
       console.log();
-      console.log(createHeader("Creating a new PocketNext project:"));
-      console.log();
-
-      // Application section
-      logSection("Application", [
-        chalk.bold("Next.js with TypeScript"),
-        chalk.bold("ESLint and Prettier"),
-        chalk.bold("TailwindCSS for styling"),
-        chalk.bold("Components directory"),
-      ]);
-
-      // Database section
-      logSection("Database", [
-        chalk.bold("PocketBase for data storage and auth"),
-        chalk.bold("API routes for database access"),
-        chalk.bold("Authentication setup"),
-      ]);
-
-      // Infrastructure section
-      logSection("Infrastructure", [
-        chalk.bold("Development scripts"),
-        chalk.bold("Production optimizations"),
-        chalk.bold("Docker configuration"),
-      ]);
-
-      console.log();
       console.log(
         pocketNextGradient(">>> Success!") +
           " Created your PocketNext project at " +
@@ -218,33 +192,51 @@ async function run() {
       );
       console.log();
 
-      // Getting started instructions
+      // Application section
+      console.log(chalk.cyan("Your project includes:"));
+
+      console.log(chalk.bold("• Next.js 15 with App Router"));
+      console.log(chalk.bold("• PocketBase backend"));
+      console.log(chalk.bold("• TypeScript, TailwindCSS, ESLint"));
+
+      console.log();
+
+      // Getting started instructions with numbered steps
       console.log(chalk.bold("To get started:"));
       console.log(
-        `- Change to the directory: ${chalk.cyan(`cd ${projectPath}`)}`
+        chalk.cyan(`1.`) +
+          ` Change to the project directory:\n   ${chalk.cyan(`cd ${projectPath}`)}`
       );
       console.log();
-      console.log("- Run commands:");
 
       // Use the packageManager from options (which was detected earlier)
       const runCmd = options.packageManager === "npm" ? "run " : "";
 
-      logCommand(
-        `${options.packageManager} ${runCmd}dev`,
-        "Starts the development server"
+      console.log(
+        chalk.cyan(`2.`) +
+          ` Start the development server:\n   ${chalk.cyan(`${options.packageManager} ${runCmd}dev`)}`
       );
-      logCommand(
-        `${options.packageManager} ${runCmd}build`,
-        "Builds the application"
+
+      console.log();
+      console.log(chalk.bold("Additional commands:"));
+
+      // List additional commands in a cleaner format
+      console.log(
+        `  ${chalk.cyan(`${options.packageManager} ${runCmd}build`)} - Builds the application`
       );
       if (options.dockerConfig === "standard") {
-        logCommand("docker compose up -d", "Start in Docker");
+        console.log(
+          `  ${chalk.cyan(`docker compose up -d`)} - Start in Docker`
+        );
       }
 
       console.log();
-      // console.log(
-      //   `${chalk.bold("Documentation:")} https://github.com/kacperkwapisz/pocketnext`
-      // );
+      console.log(chalk.bold("Once running, visit:"));
+      console.log(`  ${chalk.cyan(`http://localhost:3000`)} - Frontend`);
+      console.log(
+        `  ${chalk.cyan(`http://localhost:8090/_/`)} - PocketBase Admin`
+      );
+      console.log();
     } catch (error) {
       console.error(chalk.red("Failed to create project:"), error);
       process.exit(1);
