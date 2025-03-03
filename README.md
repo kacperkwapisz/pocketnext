@@ -103,11 +103,20 @@ bunx pocketnext@latest my-app --profile=production --use-bun --skip-install
 git clone https://github.com/kacperkwapisz/pocketnext.git
 cd pocketnext
 
-# Install dependencies and download PocketBase
-bun setup
+# Option 1: Copy the template folder to your project location
+cp -r templates/default /path/to/your-project
+cd /path/to/your-project
 
-# Start the development environment
-bun dev
+# Option 2: Or use the CLI directly from the repository
+bun install
+bun build
+bun start my-app  # This runs the CLI to create a new project
+
+# After either option, set up the project
+cd my-app  # If using Option 2
+bun install
+bun setup  # Downloads PocketBase
+bun dev    # Start development environment
 ```
 
 Visit:
@@ -376,14 +385,19 @@ If you encounter problems with template fetching:
 1. Ensure you have Git installed and available in your PATH
 2. Check your internet connection
 3. If you're behind a firewall or proxy, try using the `--quick` flag which uses simpler fetching strategies
-4. As a last resort, you can manually clone the repository and use the local templates:
+4. As a last resort, you can manually clone the repository and copy the template directly:
 
 ```bash
+# Clone the repository
 git clone https://github.com/kacperkwapisz/pocketnext.git
-cd pocketnext
+
+# Copy the template to your project location
+cp -r pocketnext/templates/default my-app
+
+# Navigate to your project and set it up
+cd my-app
 bun install
-bun build
-bun start my-app
+bun setup:db  # Download PocketBase
 ```
 
 ### Type errors with PocketBase collections
