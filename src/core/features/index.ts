@@ -201,7 +201,7 @@ async function applyImageLoaderConfig(
  * Set up GitHub workflow files
  */
 export async function setupGitHubWorkflows(targetDir: string): Promise<void> {
-  console.log(chalk.blue("Setting up GitHub workflow files..."));
+  // console.log(chalk.blue("Setting up GitHub workflow files..."));
 
   // Create .github directory
   const githubDir = path.join(targetDir, ".github/workflows");

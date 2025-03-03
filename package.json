@@ -1,6 +1,6 @@
 {
   "name": "pocketnext",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Create Next.js + PocketBase projects with an interactive setup experience",
   "publishConfig": {
     "access": "public"
