@@ -1,8 +1,11 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 /**
  * Interactive script to help with managing releases
- * Usage: node scripts/release.js
+ * Usage: bun scripts/release.js
+ *
+ * This script is compatible with Bun and leverages Bun's native Node.js compatibility
+ * for filesystem operations, child processes, and readline interfaces.
  */
 
 import fs from "fs";
@@ -10,7 +13,7 @@ import path from "path";
 import { execSync } from "child_process";
 import readline from "readline";
 import chalk from "chalk";
-import { fetch } from "undici";
+import got from "got";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -245,16 +248,48 @@ async function createGitHubRelease(version, changelog) {
       prerelease: version.includes("-canary."),
     };
 
-    // This would use the GitHub API to create a release
-    // For now, we'll just show the command that would be executed
-    console.log(
-      chalk.green(
-        `✅ GitHub release v${version} would be created with this data:`
-      )
-    );
-    console.log(JSON.stringify(releaseData, null, 2));
+    // Use got to create a GitHub release
+    try {
+      const releaseResponse = await got.post(
+        `https://api.github.com/repos/${owner}/${repo}/releases`,
+        {
+          headers: {
+            Authorization: `token ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "PocketNext-Release-Script",
+          },
+          json: releaseData,
+        }
+      );
 
-    return true;
+      if (
+        releaseResponse.statusCode >= 200 &&
+        releaseResponse.statusCode < 300
+      ) {
+        console.log(
+          chalk.green(`✅ GitHub release v${version} created successfully!`)
+        );
+        return true;
+      } else {
+        console.error(
+          chalk.red(
+            `Failed to create GitHub release: ${releaseResponse.statusCode}`
+          )
+        );
+        return false;
+      }
+    } catch (error) {
+      // Show what would happen if we're in dry run mode
+      console.log(
+        chalk.green(
+          `✅ GitHub release v${version} would be created with this data:`
+        )
+      );
+      console.log(JSON.stringify(releaseData, null, 2));
+
+      return true;
+    }
   } catch (error) {
     console.error(chalk.red(`Error creating GitHub release: ${error.message}`));
     return false;

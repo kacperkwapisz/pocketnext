@@ -199,6 +199,12 @@ async function run() {
       console.log(chalk.bold("• PocketBase backend"));
       console.log(chalk.bold("• TypeScript, TailwindCSS, ESLint"));
 
+      // Add monorepo-specific messaging if monorepo template was used
+      if (options.template === "monorepo") {
+        console.log(chalk.bold("• Monorepo structure with Turborepo"));
+        console.log(chalk.bold("• Shared UI components package"));
+      }
+
       console.log();
 
       // Getting started instructions with numbered steps

@@ -200,6 +200,36 @@ export async function createProject(
         }
       }
 
+      // Add template selection prompt if not specified via CLI
+      if (!finalOptions.template) {
+        const templateSelection = await prompts(
+          {
+            type: "select",
+            name: "template",
+            message: "Select project template:",
+            choices: [
+              {
+                title: "Default",
+                description: "Standard Next.js + PocketBase structure",
+                value: "default",
+              },
+              {
+                title: "Monorepo",
+                description:
+                  "Turborepo monorepo structure with shared packages",
+                value: "monorepo",
+              },
+            ],
+            initial: 0,
+          },
+          promptsOptions
+        );
+
+        if (templateSelection.template) {
+          finalOptions.template = templateSelection.template;
+        }
+      }
+
       // Handle Docker configuration
       if (finalOptions.profile === "custom" || !finalOptions.dockerConfig) {
         // Prompt for Docker configuration
@@ -335,7 +365,10 @@ export async function createProject(
         // Update spinner text to indicate template search
         mainSpinner.text = chalk.bold("Fetching project templates...");
 
-        templateDir = await getTemplateDirectory(mainSpinner);
+        templateDir = await getTemplateDirectory(
+          mainSpinner,
+          finalOptions.template || "default"
+        );
         if (!templateDir) {
           throw new Error("Failed to find or create template directory");
         }

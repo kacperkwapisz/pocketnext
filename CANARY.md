@@ -21,14 +21,14 @@ The current canary release includes:
 You can install PocketNext from the canary channel using:
 
 ```bash
-# Using npx with the canary tag
+# Using npm
+npx pocketnext@canary my-app
+
+# Using bun
 bunx pocketnext@canary my-app
 
 # Explicitly using the monorepo template
 bunx pocketnext@canary my-app --template monorepo
-
-# Using the experimental flag for the latest experimental features
-bunx pocketnext@canary my-app --experimental
 ```
 
 ## Versioning Scheme

@@ -33,11 +33,24 @@ export function parseCliOptions(args: string[]): CreateOptions {
     imageLoader: "vercel",
     includeGithubWorkflows: false,
     scriptsHandling: "keep", // Default to keeping scripts
+    template: "default", // Default template
   };
 
   // Check for -y/--yes flag to enable non-interactive mode
   if (args.includes("-y") || args.includes("--yes")) {
     options.yes = true;
+  }
+
+  // Check for template option
+  const templateIndex = args.findIndex((arg) => arg === "--template");
+  if (templateIndex !== -1 && args.length > templateIndex + 1) {
+    const value = args[templateIndex + 1];
+    options.template = validateOption(
+      value,
+      ["default", "monorepo"],
+      "default",
+      "template"
+    );
   }
 
   // Check for --quick flag to enable simplified setup with minimal prompts

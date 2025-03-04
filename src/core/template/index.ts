@@ -11,9 +11,11 @@ import tar from "tar";
 /**
  * Get the template directory, either local or remote
  * @param parentSpinner Optional parent spinner to use for download operations
+ * @param templateName Name of the template to use (default | monorepo)
  */
 export async function getTemplateDirectory(
-  parentSpinner?: ReturnType<typeof ora>
+  parentSpinner?: ReturnType<typeof ora>,
+  templateName: string = "default"
 ): Promise<string> {
   let templateDir = "";
   let foundLocally = false;
@@ -22,7 +24,7 @@ export async function getTemplateDirectory(
   try {
     // Check if we're in development mode and can find local templates
     const currentDir = process.cwd();
-    const localTemplateDir = path.join(currentDir, "templates/default");
+    const localTemplateDir = path.join(currentDir, `templates/${templateName}`);
 
     if (fs.existsSync(localTemplateDir)) {
       foundLocally = true;
@@ -35,7 +37,7 @@ export async function getTemplateDirectory(
         fileURLToPath(import.meta.url),
         "../../../../../"
       );
-      templateDir = path.join(packageDir, "templates/default");
+      templateDir = path.join(packageDir, `templates/${templateName}`);
 
       // Check if this directory exists
       if (fs.existsSync(templateDir)) {
@@ -49,11 +51,11 @@ export async function getTemplateDirectory(
   if (!foundLocally) {
     try {
       // If templates not found locally, try direct download first
-      return await downloadTemplateArchive(parentSpinner);
+      return await downloadTemplateArchive(parentSpinner, templateName);
     } catch (downloadError) {
       // If direct download fails, try GitHub clone as fallback
       try {
-        return await fetchTemplatesFromGitHub(parentSpinner);
+        return await fetchTemplatesFromGitHub(parentSpinner, templateName);
       } catch (error) {
         // If both methods fail, show helpful error message
         console.error(chalk.red("All template download methods failed"));
@@ -74,9 +76,11 @@ export async function getTemplateDirectory(
 /**
  * Download and extract the template archive directly
  * @param parentSpinner Optional parent spinner to use instead of creating a new one
+ * @param templateName Name of the template to use (default | monorepo)
  */
 export async function downloadTemplateArchive(
-  parentSpinner?: ReturnType<typeof ora>
+  parentSpinner?: ReturnType<typeof ora>,
+  templateName: string = "default"
 ): Promise<string> {
   const tempDir = path.join(process.cwd(), ".pocketnext-temp");
 
@@ -106,16 +110,16 @@ export async function downloadTemplateArchive(
     const extractedFiles = fs.readdirSync(tempDir);
 
     // Create proper template directory structure
-    const templatePath = path.join(tempDir, "templates", "default");
+    const templatePath = path.join(tempDir, "templates", templateName);
 
     // Look for templates directory in extracted files
-    if (fs.existsSync(path.join(tempDir, "templates", "default"))) {
+    if (fs.existsSync(path.join(tempDir, "templates", templateName))) {
       // No success message to avoid interrupting main flow
       // Only stop the spinner if we created it (not a parent spinner)
       if (!usingParentSpinner) {
         spinner.stop();
       }
-      return path.join(tempDir, "templates", "default");
+      return path.join(tempDir, "templates", templateName);
     }
 
     // If not found, we need to create the directory structure
@@ -177,7 +181,7 @@ export async function downloadTemplateArchive(
             if (!usingParentSpinner) {
               spinner.stop();
             }
-            return path.join(tempDir, "templates", "default");
+            return path.join(tempDir, "templates", templateName);
           }
         }
 
@@ -237,9 +241,11 @@ async function downloadAndExtract(
 /**
  * Fetch templates from GitHub if not found locally
  * @param parentSpinner Optional parent spinner to use instead of creating a new one
+ * @param templateName Name of the template to use (default | monorepo)
  */
 export async function fetchTemplatesFromGitHub(
-  parentSpinner?: ReturnType<typeof ora>
+  parentSpinner?: ReturnType<typeof ora>,
+  templateName: string = "default"
 ): Promise<string> {
   const tempDir = path.join(process.cwd(), ".pocketnext-temp");
 
@@ -270,13 +276,13 @@ export async function fetchTemplatesFromGitHub(
     process.chdir(currentDir); // Always restore original directory
 
     // Look for "templates/default" in the cloned repo
-    if (fs.existsSync(path.join(tempDir, "templates", "default"))) {
+    if (fs.existsSync(path.join(tempDir, "templates", templateName))) {
       // No success message to avoid interrupting main flow
       // Only stop the spinner if we created it (not a parent spinner)
       if (!usingParentSpinner) {
         spinner.stop();
       }
-      return path.join(tempDir, "templates", "default");
+      return path.join(tempDir, "templates", templateName);
     }
 
     // If we couldn't find the templates directory in the expected location
@@ -286,13 +292,13 @@ export async function fetchTemplatesFromGitHub(
       const fullPath = path.join(tempDir, dir);
       if (
         fs.statSync(fullPath).isDirectory() &&
-        fs.existsSync(path.join(fullPath, "templates", "default"))
+        fs.existsSync(path.join(fullPath, "templates", templateName))
       ) {
         // Only stop the spinner if we created it (not a parent spinner)
         if (!usingParentSpinner) {
           spinner.stop();
         }
-        return path.join(fullPath, "templates", "default");
+        return path.join(fullPath, "templates", templateName);
       }
     }
 

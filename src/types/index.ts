@@ -14,6 +14,7 @@ export interface CreateOptions {
   pocketbaseVersion?: string;
   profile?: string;
   quick?: boolean;
+  template?: string; // Template to use: "default" or "monorepo"
   [key: string]: any;
 }
 

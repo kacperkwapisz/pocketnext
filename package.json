@@ -1,6 +1,6 @@
 {
   "name": "pocketnext",
-  "version": "0.8.1",
+  "version": "0.8.2-canary.0",
   "description": "Create Next.js + PocketBase projects with an interactive setup experience",
   "publishConfig": {
     "access": "public"
@@ -27,7 +27,7 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist",
-    "start": "node dist/pocketnext.js",
+    "start": "bun dist/pocketnext.js",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -35,10 +35,10 @@
     "test:spinner": "vitest run test/core/create-project.spinner.test.ts",
     "test:utils": "vitest run test/utils/**/*.test.ts",
     "test:all": "vitest run",
-    "prepublish:canary": "npm run build",
+    "prepublish:canary": "bun run build",
     "publish:canary": "npm version prerelease --preid=canary --no-git-tag-version && npm publish --tag canary",
-    "release:canary": "npm run prepublish:canary && npm run publish:canary",
-    "release:manager": "node scripts/release.js",
+    "release:canary": "bun run prepublish:canary && bun run publish:canary",
+    "release:manager": "bun scripts/release.js",
     "sync:branches": "git checkout canary && git pull && git merge main && git push",
     "create:feature": "git checkout main && git pull && git checkout -b feature/",
     "create:exp-feature": "git checkout canary && git pull && git checkout -b feature/",
@@ -69,7 +69,6 @@
     "ora": "^7.0.1",
     "prompts": "^2.4.2",
     "tar": "^6.2.1",
-    "undici": "^6.7.1",
     "validate-npm-package-name": "^5.0.1"
   },
   "devDependencies": {
@@ -83,7 +82,8 @@
     "vitest": "^3.0.7"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
   },
   "repository": {
     "type": "git",

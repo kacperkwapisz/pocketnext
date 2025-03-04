@@ -23,6 +23,7 @@
   - [Using the CLI (Recommended)](#using-the-cli-recommended)
   - [CLI Options](#cli-options)
   - [Manual Setup](#manual-setup)
+- [🧪 Experimental Features](#-experimental-features)
 - [🧰 Core Features](#-core-features)
 - [📦 Installation Methods](#-installation-methods)
 - [📄 Project Structure](#-project-structure)
@@ -123,6 +124,27 @@ Visit:
 
 - **Frontend**: [http://localhost:3000](http://localhost:3000)
 - **PocketBase Admin**: [http://localhost:8090/\_/](http://localhost:8090/_/)
+
+## 🧪 Experimental Features
+
+### Monorepo Template
+
+PocketNext offers a monorepo template option. This template uses Turborepo to organize your project into a monorepo structure with shared packages.
+
+```bash
+# Use the interactive CLI to select template
+npx pocketnext my-app
+
+# OR explicitly select the monorepo template
+npx pocketnext my-app --template monorepo
+```
+
+The monorepo template includes:
+
+- Next.js app in `apps/web`
+- Shared UI components in `packages/ui`
+- Turborepo for build orchestration
+- All the standard PocketNext features
 
 ## 🧰 Core Features
 
