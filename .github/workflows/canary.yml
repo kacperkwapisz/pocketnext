@@ -1,0 +1,55 @@
+name: Canary Release
+
+on:
+  push:
+    branches:
+      - canary
+    paths-ignore:
+      - "**.md"
+      - ".github/**"
+      - "!.github/workflows/canary.yml"
+
+jobs:
+  release-canary:
+    name: Release Canary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Generate canary version
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          # Create canary version with timestamp
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          CANARY_VERSION="${CURRENT_VERSION}-canary.${TIMESTAMP}"
+          # Update package.json with canary version
+          npm version --no-git-tag-version $CANARY_VERSION
+          echo "Generated canary version: $CANARY_VERSION"
+
+      - name: Setup npm auth
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+
+      - name: Publish to npm
+        run: npm publish --tag canary
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
