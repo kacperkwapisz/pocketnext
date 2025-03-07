@@ -1,6 +1,18 @@
-import PocketBase from "pocketbase";
-import { TypedPocketBase } from "./types";
+"use client";
 
+/**
+ * Client-side PocketBase integration
+ *
+ * This file contains ONLY client-side code and is safe to import
+ * in client components.
+ */
+
+import PocketBase from "pocketbase";
+import { TypedPocketBase } from "@repo/db";
+
+/**
+ * Create a client-side PocketBase instance with cookie support
+ */
 export function createClient() {
   const client = new PocketBase(
     process.env.NEXT_PUBLIC_POCKETBASE_URL
@@ -16,14 +28,27 @@ export function createClient() {
   return client;
 }
 
-// For client-side usage
-export const getPocketBase = () => {
-  if (typeof window === "undefined") {
-    return createClient();
-  }
+// Create a singleton instance for client components
+export const pb = createClient();
 
-  // @ts-ignore - PocketBase is attached to the window object
-  window.pocketbase = window.pocketbase || createClient();
-  // @ts-ignore
-  return window.pocketbase;
-};
+// Export useful auth utilities
+export const isAuthenticated = () => pb.authStore.isValid;
+export const getCurrentUser = () => pb.authStore.model;
+export const logout = () => pb.authStore.clear();
+
+// Helper for login
+export async function login(email: string, password: string) {
+  return await pb.collection("users").authWithPassword(email, password);
+}
+
+// Helper for registration
+export async function register(data: {
+  email: string;
+  password: string;
+  passwordConfirm: string;
+  [key: string]: any;
+}) {
+  return await pb.collection("users").create(data);
+}
+
+export default pb;

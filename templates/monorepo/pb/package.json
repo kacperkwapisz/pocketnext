@@ -1,0 +1,17 @@
+{
+  "name": "@repo/pocketbase",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "./scripts/run-pocketbase.sh",
+    "start": "./scripts/run-pocketbase.sh",
+    "setup": "./scripts/download-pocketbase.sh",
+    "setup:admin": "./scripts/setup-pb-admin.sh",
+    "clean": "rm -f pocketbase && rm -rf pb_data",
+    "reset": "npm run clean && npm run setup"
+  },
+  "engines": {
+    "node": ">=18",
+    "bun": ">=1.0.0"
+  }
+}

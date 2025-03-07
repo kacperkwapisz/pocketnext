@@ -1,6 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "pb"
 onlyBuiltDependencies:
   - core-js-pure
   - sharp

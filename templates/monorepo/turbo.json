@@ -1,11 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalDependencies": [".env*"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -15,7 +16,25 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["@repo/pocketbase#setup"]
+    },
+    "setup": {
+      "cache": false
+    },
+    "setup:admin": {
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    },
+    "reset": {
+      "cache": false,
+      "dependsOn": ["clean"]
+    },
+    "typegen": {
+      "cache": false,
+      "dependsOn": ["@repo/pocketbase#setup"]
     }
   }
 }
