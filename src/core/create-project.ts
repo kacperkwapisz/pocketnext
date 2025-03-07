@@ -3,22 +3,15 @@ import ora from "ora";
 import fs from "fs-extra";
 import path from "path";
 import prompts from "prompts";
-import { fileURLToPath } from "url";
 import { execSync } from "child_process";
 import { CreateOptions } from "@/types";
-import { getOnline, getPackageManager, updatePackageJson } from "@/utils";
+import { getPackageManager, updatePackageJson } from "@/utils";
 import { safeRemove } from "@/utils/fs";
 import { getTemplateDirectory } from "@/core/template";
+import { getTemplateChoices } from "@/core/template/registry";
 import { applyFeatures, FEATURE_CATEGORIES } from "@/core/features";
-import {
-  applyProfileSettings,
-  promptForProfile,
-  PROJECT_PROFILES,
-} from "@/core/profiles";
-import {
-  promptForPocketBaseVersion,
-  getPocketbaseVersions,
-} from "@/core/pocketbase/versions";
+import { applyProfileSettings, promptForProfile } from "@/core/profiles";
+import { promptForPocketBaseVersion } from "@/core/pocketbase/versions";
 import { runPocketBaseSetup } from "@/core/pocketbase/setup";
 
 /**
@@ -202,31 +195,20 @@ export async function createProject(
 
       // Add template selection prompt if not specified via CLI
       if (!finalOptions.template) {
-        const templateSelection = await prompts(
+        // Ask user to select a template
+        const { template } = await prompts(
           {
             type: "select",
             name: "template",
             message: "Select project template:",
-            choices: [
-              {
-                title: "Default",
-                description: "Standard Next.js + PocketBase structure",
-                value: "default",
-              },
-              {
-                title: "Monorepo",
-                description:
-                  "Turborepo monorepo structure with shared packages",
-                value: "monorepo",
-              },
-            ],
+            choices: getTemplateChoices(),
             initial: 0,
           },
           promptsOptions
         );
 
-        if (templateSelection.template) {
-          finalOptions.template = templateSelection.template;
+        if (template) {
+          finalOptions.template = template;
         }
       }
 

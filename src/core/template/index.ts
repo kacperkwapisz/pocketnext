@@ -7,6 +7,11 @@ import { execSync } from "child_process";
 import { safeRemove } from "@/utils/fs";
 import got from "got";
 import tar from "tar";
+import {
+  getTemplateBranch,
+  getAvailableTemplates,
+  getBestBranchForTemplate,
+} from "./registry";
 
 /**
  * Get the template directory, either local or remote
@@ -17,6 +22,17 @@ export async function getTemplateDirectory(
   parentSpinner?: ReturnType<typeof ora>,
   templateName: string = "default"
 ): Promise<string> {
+  // Validate template name against available templates
+  const availableTemplates = getAvailableTemplates();
+  if (!availableTemplates.includes(templateName)) {
+    console.warn(
+      chalk.yellow(
+        `Warning: Template "${templateName}" not found. Using default template.`
+      )
+    );
+    templateName = "default";
+  }
+
   let templateDir = "";
   let foundLocally = false;
 
@@ -98,16 +114,14 @@ export async function downloadTemplateArchive(
   }
 
   try {
-    // Download the template archive directly from GitHub release/raw source
-    // Using archive URL from GitHub repository
-    const templateUrl =
-      "https://github.com/kacperkwapisz/pocketnext/archive/refs/heads/main.tar.gz";
+    // Get the appropriate branch for this template from the registry
+    const branchName = getTemplateBranch(templateName);
+
+    // Download the template archive directly from GitHub using the appropriate branch
+    const templateUrl = `https://github.com/kacperkwapisz/pocketnext/archive/refs/heads/${branchName}.tar.gz`;
 
     // Download and extract
     await downloadAndExtract(templateUrl, tempDir, spinner);
-
-    // Verify extraction success without logging details
-    const extractedFiles = fs.readdirSync(tempDir);
 
     // Create proper template directory structure
     const templatePath = path.join(tempDir, "templates", templateName);
@@ -263,9 +277,15 @@ export async function fetchTemplatesFromGitHub(
   }
 
   try {
+    // Get the appropriate branch for this template
+    // Check if we have a CANARY env variable set to determine preferred branch
+    const isCanary = process.env.CANARY === "true";
+    const preferredBranch = isCanary ? "canary" : "main";
+    const branchName = getBestBranchForTemplate(templateName, preferredBranch);
+
     // Use git to clone template repository (sparse checkout)
     execSync(
-      `git clone --depth 1 --filter=blob:none --sparse https://github.com/kacperkwapisz/pocketnext.git ${tempDir}`,
+      `git clone --depth 1 --filter=blob:none --sparse --branch ${branchName} https://github.com/kacperkwapisz/pocketnext.git ${tempDir}`,
       { stdio: "ignore" }
     );
 

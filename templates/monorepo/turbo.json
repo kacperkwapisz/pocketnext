@@ -17,7 +17,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["@repo/pocketbase#setup"]
+      "dependsOn": ["^dev"]
     },
     "setup": {
       "cache": false

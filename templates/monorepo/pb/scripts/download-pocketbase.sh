@@ -10,6 +10,13 @@ PB_VERSION=${PB_VERSION:-0.25.8}
 echo "PocketBase Downloader (Monorepo)"
 echo "-----------------------------"
 
+# Check if PocketBase already exists
+if [ -f "$PB_DIR/pocketbase" ]; then
+  echo "✅ PocketBase binary already exists at $PB_DIR/pocketbase"
+  echo "Run 'npm run reset' to redownload if needed"
+  exit 0
+fi
+
 # Determine platform
 PLATFORM="$(uname -s)"
 ARCH="$(uname -m)"

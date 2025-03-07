@@ -1,5 +1,7 @@
 import chalk from "chalk";
 import type { CreateOptions } from "../types";
+import validateNpmName from "validate-npm-package-name";
+import { getAvailableTemplates } from "@/core/template/registry";
 
 /**
  * Validates and normalizes a value against allowed options
@@ -47,7 +49,7 @@ export function parseCliOptions(args: string[]): CreateOptions {
     const value = args[templateIndex + 1];
     options.template = validateOption(
       value,
-      ["default", "monorepo"],
+      getAvailableTemplates(),
       "default",
       "template"
     );
